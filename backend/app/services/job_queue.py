@@ -1,15 +1,13 @@
 import asyncio
 import logging
-from contextlib import asynccontextmanager
-from typing import Optional, List
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Float, Integer, DateTime, Boolean, select, delete
 from datetime import datetime
-import uuid
+
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, delete, select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.config import settings
-from app.models.job import Job, JobStatus, DownloadMode, AudioFormat, VideoQuality
+from app.models.job import AudioFormat, DownloadMode, Job, JobStatus, VideoQuality
 
 logger = logging.getLogger(__name__)
 
@@ -26,15 +24,17 @@ class JobModel(Base):
     mode: Mapped[str] = mapped_column(String(16))
     status: Mapped[str] = mapped_column(String(16), default=JobStatus.QUEUED)
     progress: Mapped[float] = mapped_column(Float, default=0.0)
-    speed: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    eta: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    speed: Mapped[float | None] = mapped_column(Float, nullable=True)
+    eta: Mapped[int | None] = mapped_column(Integer, nullable=True)
     current_title: Mapped[str] = mapped_column(String(512), default="")
-    item_index: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    item_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    error: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    item_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    item_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    error: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
     audio_format: Mapped[str] = mapped_column(String(16), default=AudioFormat.MP3)
     audio_quality: Mapped[str] = mapped_column(String(16), default="320")
     video_quality: Mapped[str] = mapped_column(String(16), default=VideoQuality.BEST)
@@ -90,7 +90,7 @@ class JobQueue:
     def __init__(self):
         self.engine = create_async_engine(settings.database_url, echo=False)
         self.session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
-        self._subscribers: List[asyncio.Queue] = []
+        self._subscribers: list[asyncio.Queue] = []
         self._running = False
 
     async def init(self):
@@ -110,7 +110,7 @@ class JobQueue:
         if queue in self._subscribers:
             self._subscribers.remove(queue)
 
-    async def _notify(self, jobs: List[Job]):
+    async def _notify(self, jobs: list[Job]):
         for queue in self._subscribers:
             try:
                 queue.put_nowait([job.to_dict() for job in jobs])
@@ -126,7 +126,7 @@ class JobQueue:
             await self._notify(await self.list_all())
             return model.to_job()
 
-    async def get(self, job_id: str) -> Optional[Job]:
+    async def get(self, job_id: str) -> Job | None:
         async with self.session_factory() as session:
             result = await session.execute(select(JobModel).where(JobModel.id == job_id))
             model = result.scalar_one_or_none()
@@ -152,7 +152,7 @@ class JobQueue:
                 return model.to_job()
             return job
 
-    async def list_all(self) -> List[Job]:
+    async def list_all(self) -> list[Job]:
         async with self.session_factory() as session:
             result = await session.execute(select(JobModel).order_by(JobModel.created_at.desc()))
             return [m.to_job() for m in result.scalars().all()]
@@ -160,7 +160,12 @@ class JobQueue:
     async def cancel(self, job_id: str) -> bool:
         async with self.session_factory() as session:
             model = await session.get(JobModel, job_id)
-            if model and model.status in (JobStatus.QUEUED, JobStatus.STARTING, JobStatus.DOWNLOADING, JobStatus.PROCESSING):
+            if model and model.status in (
+                JobStatus.QUEUED,
+                JobStatus.STARTING,
+                JobStatus.DOWNLOADING,
+                JobStatus.PROCESSING,
+            ):
                 model.cancel_requested = True
                 await session.commit()
                 await self._notify(await self.list_all())
@@ -170,7 +175,9 @@ class JobQueue:
     async def clear_finished(self) -> int:
         async with self.session_factory() as session:
             result = await session.execute(
-                delete(JobModel).where(JobModel.status.in_([JobStatus.COMPLETED, JobStatus.ERROR, JobStatus.CANCELLED]))
+                delete(JobModel).where(
+                    JobModel.status.in_([JobStatus.COMPLETED, JobStatus.ERROR, JobStatus.CANCELLED])
+                )
             )
             await session.commit()
             await self._notify(await self.list_all())

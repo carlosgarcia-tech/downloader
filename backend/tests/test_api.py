@@ -1,15 +1,13 @@
-import pytest
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, patch, MagicMock
-from httpx import ASGITransport, AsyncClient
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
-from main import app
-from app.models.job import Job, JobStatus, DownloadMode, AudioFormat, VideoQuality
-from app.services.job_queue import job_queue
+from app.models.job import DownloadMode, Job, JobStatus  # noqa: E402
 
 
 class TestAPIRoutes:

@@ -1,6 +1,7 @@
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from fastapi import Request, HTTPException
+from fastapi import HTTPException, Request
 from starlette.responses import Response
 
 from app.core.security import RateLimitMiddleware, validate_url
@@ -40,10 +41,10 @@ class TestRateLimitMiddleware:
     @pytest.mark.asyncio
     async def test_allows_requests_under_limit(self):
         middleware = RateLimitMiddleware(None, max_requests=5, window_seconds=60)
-        
+
         mock_request = MagicMock(spec=Request)
         mock_request.client.host = "127.0.0.1"
-        
+
         async def mock_call_next(request):
             return Response(content=b"OK", status_code=200)
 
@@ -54,10 +55,10 @@ class TestRateLimitMiddleware:
     @pytest.mark.asyncio
     async def test_blocks_requests_over_limit(self):
         middleware = RateLimitMiddleware(None, max_requests=3, window_seconds=60)
-        
+
         mock_request = MagicMock(spec=Request)
         mock_request.client.host = "127.0.0.1"
-        
+
         async def mock_call_next(request):
             return Response(content=b"OK", status_code=200)
 
@@ -73,22 +74,22 @@ class TestRateLimitMiddleware:
     @pytest.mark.asyncio
     async def test_different_ips_separate_limits(self):
         middleware = RateLimitMiddleware(None, max_requests=2, window_seconds=60)
-        
+
         async def mock_call_next(request):
             return Response(content=b"OK", status_code=200)
 
         req1 = MagicMock(spec=Request)
         req1.client.host = "192.168.1.1"
-        
+
         req2 = MagicMock(spec=Request)
         req2.client.host = "192.168.1.2"
 
         await middleware.dispatch(req1, mock_call_next)
         await middleware.dispatch(req1, mock_call_next)
-        
+
         response = await middleware.dispatch(req2, mock_call_next)
         assert response.status_code == 200
-        
+
         with pytest.raises(HTTPException) as exc_info:
             await middleware.dispatch(req1, mock_call_next)
         assert exc_info.value.status_code == 429

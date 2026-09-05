@@ -1,5 +1,5 @@
 from .routes import router, set_executor
-from .websocket import ws_endpoint, manager, broadcast_loop
+from .websocket import broadcast_loop, manager, ws_endpoint
 
 __all__ = [
     "router",

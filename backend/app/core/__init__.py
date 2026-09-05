@@ -1,4 +1,4 @@
-from .logging import setup_logging, get_logger
+from .logging import get_logger, setup_logging
 from .security import RateLimitMiddleware, validate_url
 
 __all__ = [

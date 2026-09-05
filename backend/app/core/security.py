@@ -1,11 +1,9 @@
-from fastapi import Request, HTTPException, status
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
+import logging
 import time
 from collections import defaultdict
-import logging
 
-from app.config import settings
+from fastapi import HTTPException, Request, status
+from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +44,7 @@ def validate_url(url: str) -> bool:
     )
     try:
         from urllib.parse import urlparse
+
         parsed = urlparse(url)
         return any(parsed.netloc.endswith(domain) for domain in allowed_domains)
     except Exception:

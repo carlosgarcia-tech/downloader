@@ -2,12 +2,12 @@ import pytest
 from pydantic import ValidationError
 
 from app.models.job import (
+    AudioFormat,
+    DownloadMode,
     Job,
-    JobStatus,
     JobCreate,
     JobParams,
-    DownloadMode,
-    AudioFormat,
+    JobStatus,
     VideoQuality,
 )
 

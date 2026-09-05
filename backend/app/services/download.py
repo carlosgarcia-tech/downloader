@@ -1,10 +1,10 @@
-import yt_dlp
-from pathlib import Path
-from typing import Callable, Optional
 import logging
+from collections.abc import Callable
+
+import yt_dlp
 
 from app.config import settings
-from app.models.job import Job, JobStatus, DownloadMode, AudioFormat, VideoQuality
+from app.models.job import DownloadMode, Job, JobStatus
 
 logger = logging.getLogger(__name__)
 

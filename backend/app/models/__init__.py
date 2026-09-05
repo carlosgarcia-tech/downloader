@@ -1,5 +1,5 @@
-from .job import Job, JobStatus, JobCreate, JobParams
-from .download import DownloadMode, AudioFormat, VideoQuality
+from .download import AudioFormat, DownloadMode, VideoQuality
+from .job import Job, JobCreate, JobParams, JobStatus
 
 __all__ = [
     "Job",

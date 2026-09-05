@@ -1,22 +1,22 @@
 import asyncio
-import pytest
-import pytest_asyncio
+import os
 import sys
 import tempfile
-import os
 from pathlib import Path
+
+import pytest
+import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 # Add backend directory to path for main.py import
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
-from main import app
-from app.config import settings
-from app.services.job_queue import Base, job_queue, JobQueue
-from app.models.job import Job, JobStatus, DownloadMode, AudioFormat, VideoQuality
+from app.models.job import AudioFormat, DownloadMode, Job, VideoQuality  # noqa: E402
+from app.services.job_queue import Base, JobQueue  # noqa: E402
+from main import app  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -31,16 +31,17 @@ def test_db():
     # Use a temporary file for SQLite to avoid in-memory issues with aiosqlite
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name
-    
+
     engine = create_async_engine(
         f"sqlite+aiosqlite:///{db_path}",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    
+
     async def setup():
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+
     asyncio.run(setup())
 
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
@@ -50,7 +51,7 @@ def test_db():
     asyncio.run(engine.dispose())
     try:
         os.unlink(db_path)
-    except:
+    except Exception:
         pass
 
 

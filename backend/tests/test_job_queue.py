@@ -1,8 +1,7 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.services.job_queue import JobQueue, JobModel
-from app.models.job import Job, JobStatus, DownloadMode, AudioFormat, VideoQuality
+from app.models.job import DownloadMode, JobStatus
+from app.services.job_queue import JobModel
 
 
 class TestJobQueue:
@@ -80,6 +79,7 @@ class TestJobQueue:
 class TestJobModel:
     def test_job_model_to_job(self):
         from datetime import datetime
+
         model = JobModel(
             id="test123",
             url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",

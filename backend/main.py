@@ -1,20 +1,21 @@
 """
 Descargador — Backend FastAPI + yt-dlp (Modular Architecture)
 """
+
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
+from app.api import broadcast_loop, router, set_executor, ws_endpoint
 from app.config import settings
-from app.core.logging import setup_logging, get_logger
+from app.core.logging import get_logger, setup_logging
 from app.core.security import RateLimitMiddleware
-from app.services.ffmpeg import verify_ffmpeg, FFmpegNotFoundError
+from app.services.ffmpeg import FFmpegNotFoundError, verify_ffmpeg
 from app.services.job_queue import job_queue
-from app.api import router, set_executor, ws_endpoint, broadcast_loop
 
 logger = get_logger(__name__)
 

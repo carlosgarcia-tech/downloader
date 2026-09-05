@@ -1,8 +1,8 @@
+import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+
 from pydantic import BaseModel, Field, HttpUrl, validator
-import uuid
 
 
 class JobStatus(str, Enum):
@@ -67,12 +67,12 @@ class Job(BaseModel):
     mode: DownloadMode
     status: JobStatus = JobStatus.QUEUED
     progress: float = 0.0
-    speed: Optional[float] = None
-    eta: Optional[int] = None
+    speed: float | None = None
+    eta: int | None = None
     current_title: str = ""
-    item_index: Optional[int] = None
-    item_count: Optional[int] = None
-    error: Optional[str] = None
+    item_index: int | None = None
+    item_count: int | None = None
+    error: str | None = None
     cancel_requested: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

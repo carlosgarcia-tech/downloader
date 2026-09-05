@@ -1,12 +1,11 @@
-from fastapi import APIRouter, HTTPException, status
-from typing import List
 import logging
 
-from app.models.job import JobCreate, Job
-from app.services.job_queue import job_queue
-from app.services.download import download_worker, DownloadError
-from app.services.ffmpeg import verify_ffmpeg
+from fastapi import APIRouter, HTTPException
+
 from app.core.security import validate_url
+from app.models.job import Job, JobCreate
+from app.services.download import download_worker
+from app.services.job_queue import job_queue
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,7 @@ async def create_jobs(req: JobCreate):
     return {"created": created}
 
 
-@router.get("/api/jobs", response_model=List[Job])
+@router.get("/api/jobs", response_model=list[Job])
 async def list_jobs():
     return await job_queue.list_all()
 

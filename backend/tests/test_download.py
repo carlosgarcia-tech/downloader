@@ -1,9 +1,7 @@
-import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
-from pathlib import Path
+from unittest.mock import MagicMock, patch
 
-from app.services.download import build_ydl_opts, download_worker, DownloadError
-from app.models.job import Job, JobStatus, DownloadMode, AudioFormat, VideoQuality
+from app.models.job import AudioFormat, JobStatus, VideoQuality
+from app.services.download import build_ydl_opts, download_worker
 
 
 class TestBuildYdlOpts:

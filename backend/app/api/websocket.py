@@ -1,9 +1,10 @@
-from fastapi import WebSocket, WebSocketDisconnect
 import asyncio
 import logging
 
-from app.services.job_queue import job_queue
+from fastapi import WebSocket, WebSocketDisconnect
+
 from app.models.job import Job
+from app.services.job_queue import job_queue
 
 logger = logging.getLogger(__name__)
 

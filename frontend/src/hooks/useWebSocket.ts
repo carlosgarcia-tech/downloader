@@ -60,6 +60,7 @@ export function useWebSocket({
   }, []);
 
   const disconnect = useCallback(() => {
+    console.log('[WS] Disconnecting...');
     clearReconnectTimeout();
     clearHeartbeat();
     
@@ -76,6 +77,7 @@ export function useWebSocket({
 
   const startHeartbeat = useCallback(() => {
     clearHeartbeat();
+    console.log('[WS] Starting heartbeat');
     heartbeatIntervalRef.current = setInterval(() => {
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({ type: 'ping' }));
@@ -89,12 +91,14 @@ export function useWebSocket({
       
       // Handle heartbeat response
       if (data.type === 'pong') {
+        console.log('[WS] Received pong');
         return;
       }
       
       // Handle jobs array update
       if (Array.isArray(data)) {
         const jobs = data as Job[];
+        console.log('[WS] Received jobs update:', jobs.length, 'jobs');
         onJobsUpdateRef.current(jobs);
         
         // Also check for individual song updates
@@ -123,15 +127,26 @@ export function useWebSocket({
   }, []);
 
   const connect = useCallback(() => {
-    if (!enabledRef.current) return;
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (!enabledRef.current) {
+      console.log('[WS] Connect skipped - not enabled');
+      return;
+    }
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      console.log('[WS] Already connected');
+      return;
+    }
     
+    console.log('[WS] Connecting...');
     setConnectionState('connecting');
     
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${proto}//${location.host}/ws`);
+    const wsUrl = `${proto}//${location.host}/ws`;
+    console.log('[WS] Connecting to:', wsUrl);
+    
+    const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
+      console.log('[WS] Connected successfully');
       setIsConnected(true);
       setConnectionState('connected');
       reconnectAttempts.current = 0;
@@ -141,6 +156,7 @@ export function useWebSocket({
     ws.onmessage = handleMessage;
 
     ws.onclose = (event) => {
+      console.log('[WS] Connection closed:', event.code, event.reason);
       setIsConnected(false);
       clearHeartbeat();
       wsRef.current = null;
@@ -165,6 +181,8 @@ export function useWebSocket({
         );
         reconnectAttempts.current++;
         
+        console.log('[WS] Reconnecting in', delay, 'ms (attempt', reconnectAttempts.current, ')');
+        
         reconnectTimeoutRef.current = setTimeout(() => {
           connect();
         }, delay);
@@ -175,7 +193,7 @@ export function useWebSocket({
     };
 
     ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      console.error('[WS] Error:', error);
       ws.close();
     };
 
@@ -183,6 +201,7 @@ export function useWebSocket({
   }, [handleMessage, startHeartbeat]);
 
   const reconnect = useCallback(() => {
+    console.log('[WS] Manual reconnect requested');
     disconnect();
     reconnectAttempts.current = 0;
     connect();
@@ -190,12 +209,15 @@ export function useWebSocket({
 
   useEffect(() => {
     if (enabled) {
+      console.log('[WS] Effect: connecting...');
       connect();
     } else {
+      console.log('[WS] Effect: disconnecting...');
       disconnect();
     }
 
     return () => {
+      console.log('[WS] Effect cleanup: disconnecting...');
       disconnect();
     };
   }, [enabled, connect, disconnect]);

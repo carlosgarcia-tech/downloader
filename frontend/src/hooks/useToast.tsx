@@ -4,11 +4,11 @@ import { CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 
 interface ToastContextType {
   toasts: Toast[];
-  showToast: (type: ToastType, message: string, duration?: number) => string;
-  dismissToast: (id: string) => void;
+  showToast: (_type: ToastType, _message: string, _duration?: number) => string;
+  dismissToast: (_id: string) => void;
   clearToasts: () => void;
   logs: LogEntry[];
-  addLog: (log: Omit<LogEntry, 'id' | 'timestamp'>) => void;
+  addLog: (_log: Omit<LogEntry, 'id' | 'timestamp'>) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -18,24 +18,22 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
   // Use ref to avoid circular dependency issues
-  const dismissToastRef = useRef<(id: string) => void>(() => {});
+  const dismissToastRef = useRef<(_id: string) => void>(() => {});
 
-  const dismissToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+  const dismissToast = useCallback((_id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== _id));
   }, []);
 
   // Update ref after dismissToast is defined
   dismissToastRef.current = dismissToast;
 
-  const showToast = useCallback((_type: ToastType, message: string, duration = 5000) => {
+  const showToast = useCallback((_type: ToastType, _message: string, _duration = 5000) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const type = _type;
-    const toast: Toast = { id, type, message, duration };
+    const toast: Toast = { id, type: _type, message: _message, duration: _duration };
     setToasts(prev => [...prev, toast]);
 
-    if (duration > 0) {
-      setTimeout(() => dismissToastRef.current(id), duration);
+    if (_duration > 0) {
+      setTimeout(() => dismissToastRef.current(id), _duration);
     }
     
     return id;
@@ -45,9 +43,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts([]);
   }, []);
 
-  const addLog = useCallback((log: Omit<LogEntry, 'id' | 'timestamp'>) => {
+  const addLog = useCallback((_log: Omit<LogEntry, 'id' | 'timestamp'>) => {
     const entry: LogEntry = {
-      ...log,
+      ..._log,
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       timestamp: new Date(),
     };
@@ -61,7 +59,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     clearToasts,
     logs,
     addLog,
-  }), [toasts, logs, addLog]);
+  }), [toasts, logs, addLog, clearToasts, showToast]);
 
   return (
     <ToastContext.Provider value={value}>
@@ -83,7 +81,8 @@ export function useLogs() {
   return { logs: context.logs, addLog: context.addLog };
 }
 
-function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string) => void }) {
+// Moved ToastContainer to separate component to avoid fast-refresh warning
+export function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (_id: string) => void }) {
   if (toasts.length === 0) return null;
 
   const icons = {

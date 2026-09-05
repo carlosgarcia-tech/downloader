@@ -7,9 +7,9 @@ import { JobItem } from './JobItem';
 
 interface PlaylistViewProps {
   jobs: Job[];
-  onCancel: (id: string) => void;
-  onRetry?: (id: string) => void;
-  onOpenFolder?: (path: string) => void;
+  onCancel: (_id: string) => void;
+  onRetry?: (_id: string) => void;
+  onOpenFolder?: (_path: string) => void;
 }
 
 export function PlaylistView({ jobs, onCancel, onRetry, onOpenFolder }: PlaylistViewProps) {

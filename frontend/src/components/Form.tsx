@@ -124,7 +124,7 @@ export function Form({ onJobsCreated }: { onJobsCreated: () => void }) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData.urls, onJobsCreated, showToast]);
+  }, [formData, onJobsCreated, showToast]);
 
   const handleClearUrls = useCallback(() => {
     setFormData(prev => ({ ...prev, urls: '' }));

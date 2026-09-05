@@ -2,9 +2,9 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Job, SongProgress } from '../types/api';
 
 export interface UseWebSocketOptions {
-  onJobsUpdate: (jobs: Job[]) => void;
-  onJobUpdate?: (job: Job) => void;
-  onSongUpdate?: (jobId: string, song: SongProgress) => void;
+  onJobsUpdate: (_jobs: Job[]) => void;
+  onJobUpdate?: (_job: Job) => void;
+  onSongUpdate?: (_jobId: string, _song: SongProgress) => void;
   enabled?: boolean;
 }
 
@@ -198,7 +198,7 @@ export function useWebSocket({
     };
 
     wsRef.current = ws;
-  }, [handleMessage, startHeartbeat]);
+  }, [handleMessage, startHeartbeat, clearHeartbeat]);
 
   const reconnect = useCallback(() => {
     console.log('[WS] Manual reconnect requested');

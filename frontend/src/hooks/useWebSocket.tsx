@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Job } from '../types/api';
 
-export function useWebSocket(onJobsUpdate: (jobs: Job[]) => void) {
+export function useWebSocket(onJobsUpdate: (_jobs: Job[]) => void) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number>();
   const [isConnected, setIsConnected] = useState(false);

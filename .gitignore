@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.mypy_cache
+.ruff_cache
+*.egg-info
+dist
+build
+.venv
+venv
+env
+ENV
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# Logs
+*.log
+logs/
+
+# Data (persisted via volumes)
+data/
+downloads/
+*.db
+*.sqlite
+*.sqlite3
+
+# Test outputs
+.coverage.*
+htmlcov/
+
+# CI/CD
+.github/
+
+# Misc
+*.bak
+*.tmp
+*.temp

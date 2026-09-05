@@ -3,6 +3,18 @@ export type AudioFormat = 'mp3' | 'm4a' | 'flac';
 export type VideoQuality = 'best' | '2160' | '1440' | '1080' | '720' | '480';
 export type JobStatus = 'queued' | 'starting' | 'downloading' | 'processing' | 'completed' | 'error' | 'cancelled';
 
+export interface SongProgress {
+  index: number;
+  total: number;
+  title: string;
+  status: JobStatus;
+  progress: number;
+  speed?: number;
+  eta?: number;
+  error?: string;
+  filePath?: string;
+}
+
 export interface Job {
   id: string;
   url: string;
@@ -22,6 +34,10 @@ export interface Job {
   audio_quality: string;
   video_quality: VideoQuality;
   folder: string;
+  // Enhanced fields for playlist/album tracking
+  songs?: SongProgress[];
+  playlist_title?: string;
+  is_playlist: boolean;
 }
 
 export interface CreateJobRequest {
@@ -48,4 +64,13 @@ export interface Toast {
   type: ToastType;
   message: string;
   duration?: number;
+}
+
+export interface LogEntry {
+  id: string;
+  timestamp: Date;
+  level: 'debug' | 'info' | 'warn' | 'error';
+  jobId?: string;
+  message: string;
+  meta?: Record<string, unknown>;
 }

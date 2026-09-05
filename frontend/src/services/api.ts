@@ -26,6 +26,8 @@ export const api = {
 
   listJobs: () => fetchJson<Job[]>('/jobs'),
 
+  getJob: (id: string) => fetchJson<Job>(`/jobs/${id}`),
+
   cancelJob: (id: string) =>
     fetchJson<{ ok: boolean }>(`/jobs/${id}`, { method: 'DELETE' }),
 

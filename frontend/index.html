@@ -1,87 +1,14 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Descargador</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css" />
-</head>
-<body>
-
-<div class="deck">
-
-  <header class="deck-header">
-    <div class="deck-title">
-      <span class="deck-mark"></span>
-      <h1>Descargador</h1>
-    </div>
-    <p class="deck-sub">Pega un enlace de YouTube / YouTube Music — video, canción, álbum o playlist completa.</p>
-  </header>
-
-  <form id="job-form" class="slot">
-    <label for="urls" class="slot-label">Enlaces</label>
-    <textarea
-      id="urls"
-      name="urls"
-      placeholder="https://music.youtube.com/playlist?list=...&#10;https://youtube.com/watch?v=...&#10;(uno por línea)"
-      rows="3"
-      required
-    ></textarea>
-
-    <div class="mode-row">
-      <div class="mode-toggle" id="mode-toggle">
-        <button type="button" class="mode-btn active" data-mode="audio">Audio</button>
-        <button type="button" class="mode-btn" data-mode="video">Video</button>
-      </div>
-
-      <div class="opt-group" id="audio-opts">
-        <select id="audio_format" name="audio_format">
-          <option value="mp3">MP3</option>
-          <option value="m4a">M4A</option>
-          <option value="flac">FLAC</option>
-        </select>
-        <select id="audio_quality" name="audio_quality">
-          <option value="320">320 kbps</option>
-          <option value="256">256 kbps</option>
-          <option value="192">192 kbps</option>
-          <option value="128">128 kbps</option>
-        </select>
-      </div>
-
-      <div class="opt-group hidden" id="video-opts">
-        <select id="video_quality" name="video_quality">
-          <option value="best">Mejor calidad</option>
-          <option value="2160">2160p</option>
-          <option value="1440">1440p</option>
-          <option value="1080">1080p</option>
-          <option value="720">720p</option>
-          <option value="480">480p</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="folder-row">
-      <label for="folder" class="folder-label">Subcarpeta (opcional)</label>
-      <input type="text" id="folder" name="folder" placeholder="ej. cumbias, ost-pelicula..." />
-    </div>
-
-    <button type="submit" class="submit-btn">Descargar</button>
-  </form>
-
-  <section class="queue">
-    <div class="queue-header">
-      <h2>Cola</h2>
-      <button type="button" id="clear-btn" class="clear-btn">Limpiar terminadas</button>
-    </div>
-    <ul id="queue-list" class="queue-list">
-      <li class="empty-hint">Todavía no hay descargas. Pega un enlace arriba para empezar.</li>
-    </ul>
-  </section>
-
-</div>
-
-<script src="script.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Descargador</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

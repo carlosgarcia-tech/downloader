@@ -1,23 +1,23 @@
 # Multi-stage Dockerfile for Descargador
-# Uses uv for fast Python package installation
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
+# Stage 1: Builder - install dependencies
+FROM python:3.12-slim-bookworm AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /app
 
-# Install system dependencies (cached layer)
+# Install system dependencies including ffmpeg
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies using uv (much faster than pip)
+# Install Python dependencies using pip
 COPY backend/pyproject.toml requirements.txt ./
-RUN uv pip install --system -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 
 # Stage 2: Runtime - minimal image
@@ -39,7 +39,7 @@ RUN groupadd -r appuser && useradd -r -g appuser -m -u 1000 appuser
 WORKDIR /app
 
 # Copy installed packages from builder
-COPY --from=builder /usr/local/lib/python3.12/dist-packages /usr/local/lib/python3.12/dist-packages
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code

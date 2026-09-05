@@ -48,8 +48,7 @@ downloads/
 .coverage.*
 htmlcov/
 
-# CI/CD
-.github/
+
 
 # Misc
 *.bak

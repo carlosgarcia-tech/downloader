@@ -106,5 +106,4 @@ jobs:
       - name: Deploy to staging
         run: |
           echo "Deploy to staging server..."
-          # Add your deployment script here
-          # e.g., ssh to server and run docker compose pull && docker compose up -d
+          # proximamente

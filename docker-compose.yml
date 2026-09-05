@@ -1,0 +1,51 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: descargador:latest
+    container_name: descargador
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./downloads:/app/downloads
+      - ./data:/app/data
+    environment:
+      - MAX_CONCURRENT_DOWNLOADS=2
+      - LOG_LEVEL=INFO
+      - CORS_ORIGINS=["*"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  # Development profile with hot reload
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    image: descargador:dev
+    container_name: descargador-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./frontend:/app/frontend
+      - ./downloads:/app/downloads
+      - ./data:/app/data
+    environment:
+      - MAX_CONCURRENT_DOWNLOADS=2
+      - LOG_LEVEL=DEBUG
+      - CORS_ORIGINS=["*"]
+    command: python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app
+    profiles:
+      - dev
+
+networks:
+  default:
+    name: descargador-network

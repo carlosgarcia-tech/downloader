@@ -14,11 +14,17 @@ from app.api import broadcast_loop, router, set_executor, ws_endpoint
 from app.config import settings
 from app.core.logging import get_logger, setup_logging
 from app.core.security import RateLimitMiddleware
+from app.services.download import item_executor as _item_executor
 from app.services.ffmpeg import FFmpegNotFoundError, verify_ffmpeg
 from app.services.job_queue import job_queue
 
 logger = get_logger(__name__)
 
+# Job executor — controls how many jobs enter "starting" state concurrently.
+# This is NOT the real download limit: each job acquires _global_semaphore
+# (in download.py) before calling ydl.download().  A job can sit in
+# "extracting metadata" or "processing" without holding a semaphore slot.
+# The real concurrent-download ceiling is always _global_semaphore (4 slots).
 executor = ThreadPoolExecutor(max_workers=settings.max_concurrent_downloads)
 
 
@@ -34,6 +40,7 @@ async def lifespan(app: FastAPI):
         raise
 
     await job_queue.init()
+    job_queue.set_main_loop(asyncio.get_running_loop())
     set_executor(executor)
 
     broadcast_task = asyncio.create_task(broadcast_loop())
@@ -48,6 +55,7 @@ async def lifespan(app: FastAPI):
         pass
 
     executor.shutdown(wait=True)
+    _item_executor.shutdown(wait=False)
     await job_queue.close()
     logger.info("Descargador backend stopped")
 

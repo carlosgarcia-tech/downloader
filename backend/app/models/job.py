@@ -63,7 +63,7 @@ class JobCreate(BaseModel):
 
 class Job(BaseModel):
     id: str = Field(default_factory=lambda: uuid.uuid4().hex[:8])
-    url: HttpUrl
+    url: str
     mode: DownloadMode
     status: JobStatus = JobStatus.QUEUED
     progress: float = 0.0
@@ -80,6 +80,10 @@ class Job(BaseModel):
     audio_quality: str = "320"
     video_quality: VideoQuality = VideoQuality.BEST
     folder: str = ""
+    output_path: str | None = None
+    output_files: list[str] | None = None
+    playlist_title: str | None = None
+    failed_items: list[dict] | None = None
 
     def to_dict(self) -> dict:
         return self.model_dump(mode="json")

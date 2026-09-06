@@ -2,6 +2,8 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_base_dir = Path(__file__).resolve().parent.parent
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -13,10 +15,10 @@ class Settings(BaseSettings):
 
     host: str = "0.0.0.0"
     port: int = 8000
-    max_concurrent_downloads: int = 2
-    downloads_dir: Path = Path(__file__).resolve().parent.parent.parent / "downloads"
-    frontend_dir: Path = Path(__file__).resolve().parent.parent.parent / "frontend"
-    database_url: str = "sqlite+aiosqlite:///./data/jobs.db"
+    max_concurrent_downloads: int = 4
+    downloads_dir: Path = _base_dir.parent / "downloads"
+    frontend_dir: Path = _base_dir.parent / "frontend"
+    database_url: str = f"sqlite+aiosqlite:///{_base_dir / 'data' / 'jobs.db'}"
     log_level: str = "INFO"
     cors_origins: list[str] = ["*"]
 
@@ -24,3 +26,4 @@ class Settings(BaseSettings):
 settings = Settings()
 settings.downloads_dir.mkdir(parents=True, exist_ok=True)
 settings.frontend_dir.mkdir(parents=True, exist_ok=True)
+(_base_dir / "data").mkdir(parents=True, exist_ok=True)

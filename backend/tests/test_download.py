@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from app.models.job import AudioFormat, JobStatus, Job, VideoQuality
+from app.models.job import AudioFormat, JobStatus, VideoQuality
 from app.services.download import _build_single_ydl_opts, download_worker
 
 

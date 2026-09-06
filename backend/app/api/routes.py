@@ -135,7 +135,7 @@ async def download_job(job_id: str, request: Request):
         raise
     except Exception as e:
         logger.error("[%s] Error resolving path for job %s: %s", client, job_id, e)
-        raise HTTPException(500, f"Error resolviendo ruta: {e}")
+        raise HTTPException(500, f"Error resolviendo ruta: {e}") from e
 
     logger.info("[%s] Serving file: %s", client, path)
     return FileResponse(
@@ -172,7 +172,7 @@ async def download_job_zip(job_id: str, request: Request):
     except Exception as e:
         os.unlink(tmp.name)
         logger.error("[%s] Error creating zip for job %s: %s", client, job_id, e)
-        raise HTTPException(500, f"Error creando zip: {e}")
+        raise HTTPException(500, f"Error creando zip: {e}") from e
 
     zip_name = f"{job.playlist_title or job.id}.zip"
     logger.info("[%s] Zip ready: %s (%d files)", client, zip_name, len(job.output_files))

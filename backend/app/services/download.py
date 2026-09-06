@@ -155,8 +155,6 @@ def _download_item(
     update_callback: Callable[[Job], None],
 ):
     """Download a single item from a playlist.  Runs in item_executor pool."""
-    from app.services.job_queue import job_queue as jq  # local import
-
     item_state = _ItemState(index=item_index)
     with jp.lock:
         jp.items[item_index] = item_state

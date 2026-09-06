@@ -24,6 +24,7 @@ export interface Job {
   speed?: number;
   eta?: number;
   current_title: string;
+  thumbnail?: string;
   item_index?: number;
   item_count?: number;
   error?: string;
@@ -34,9 +35,10 @@ export interface Job {
   audio_quality: string;
   video_quality: VideoQuality;
   folder: string;
-  // Enhanced fields for playlist/album tracking
-  songs?: SongProgress[];
+  output_path?: string;
+  output_files?: string[];
   playlist_title?: string;
+  songs?: SongProgress[];
   is_playlist: boolean;
 }
 

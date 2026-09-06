@@ -2,18 +2,19 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { useReducedMotion } from 'framer-motion';
 import { api } from './services/api';
 import type { Job } from './types/api';
 import { Form } from './components/Form';
 import { Queue } from './components/Queue';
 import { ToastProvider, useToast } from './hooks/useToast.tsx';
-import { useWebSocket, type UseWebSocketOptions } from './hooks/useWebSocket';
-import { Loader2, Music, Sparkles } from 'lucide-react';
+import { useWebSocket } from './hooks/useWebSocket.tsx';
 import './index.css';
 
 function AppContent() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const { showToast } = useToast();
+  const shouldReduceMotion = useReducedMotion();
 
   const handleJobsUpdate = useCallback((newJobs: Job[]) => {
     setJobs(newJobs);
@@ -21,9 +22,12 @@ function AppContent() {
 
   const fetchJobs = useCallback(async () => {
     try {
+      console.log('[App] Fetching jobs...');
       const data = await api.listJobs();
+      console.log('[App] Jobs fetched:', data.length);
       setJobs(data);
-    } catch {
+    } catch (err) {
+      console.error('[App] Failed to fetch jobs:', err);
       showToast('error', 'No se pudo cargar la cola');
     }
   }, [showToast]);
@@ -32,124 +36,123 @@ function AppContent() {
     fetchJobs();
   }, [fetchJobs]);
 
-  useWebSocket({
+  const ws = useWebSocket({
     onJobsUpdate: handleJobsUpdate,
     enabled: true,
-  } satisfies UseWebSocketOptions);
+  });
 
-  const handleJobsCreated = useCallback(() => {
-    fetchJobs();
-  }, [fetchJobs]);
+  const transitionConfig = shouldReduceMotion
+    ? { duration: 0 }
+    : { duration: 0.4, ease: [0.16, 1, 0.3, 1] };
 
   return (
     <div className="min-h-screen bg-bg">
-      {/* Animated background particles */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1.5s' }} />
-      </div>
-
-      <main className="relative max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <main className="relative max-w-2xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.header
-          initial={{ opacity: 0, y: -20 }}
+          initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
+          transition={transitionConfig}
+          className="mb-10"
         >
-          <div className="flex items-center justify-between gap-4 flex-wrap mb-6">
-            <div className="flex items-center gap-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap mb-6">
+            <div className="flex items-center gap-3">
               <motion.div
-                initial={{ scale: 0, rotate: -180 }}
+                initial={shouldReduceMotion ? { scale: 1 } : { scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-                className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center shadow-lg shadow-amber-500/25"
+                transition={shouldReduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 20, delay: 0.2 }}
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-action flex items-center justify-center flex-shrink-0"
               >
-                <Music className="w-8 h-8 text-[#1b1204]" />
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 sm:w-7 sm:h-7 text-bg">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polygon points="10 8 16 12 10 16 10 8"/>
+                  <line x1="12" y1="8" x2="12" y2="16"/>
+                </svg>
               </motion.div>
               <div>
-                <h1 className="font-display font-bold text-3xl sm:text-4xl text-text tracking-tight">
+                <h1 className="font-display font-bold text-2xl sm:text-3xl text-text tracking-tight">
                   Descargador
                 </h1>
-                <p className="text-text-muted/70 mt-1">
-                  YouTube & YouTube Music — canciones, álbumes, playlists y videos
+                <p className="text-text-muted mt-0.5 text-xs sm:text-sm">
+                  YouTube & YouTube Music
                 </p>
               </div>
             </div>
-            
-            <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-panel/50 border border-line/50 rounded-full">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span className="text-sm font-medium text-text">Nueva UI</span>
-              </div>
-            </div>
+
+            {/* Connection status — inline in header */}
+            <ConnectionStatus
+              connectionState={ws.connectionState}
+              onReconnect={ws.reconnect}
+              shouldReduceMotion={shouldReduceMotion}
+            />
           </div>
 
           <motion.p
-            initial={{ opacity: 0, x: -20 }}
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, x: -12 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
-            className="text-text-muted/60 max-w-2xl"
+            className="text-text-muted max-w-2xl text-sm"
           >
             Pega enlaces de YouTube / YouTube Music — videos, canciones, álbumes o playlists completas.
-            Detectamos automáticamente playlists y álbumes para mostrar el progreso canción por canción.
+            <span className="hidden sm:inline"> Detectamos automáticamente playlists y álbumes para mostrar el progreso canción por canción.</span>
           </motion.p>
         </motion.header>
 
         {/* Main Content */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { delay: 0.2, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="space-y-8"
         >
-          {/* Form */}
-          <Form onJobsCreated={handleJobsCreated} />
-
-          {/* Queue */}
+          <Form />
           <Queue jobs={jobs} />
         </motion.div>
       </main>
-
-      {/* Connection status indicator */}
-      <ConnectionStatus connectionState="connected" onReconnect={() => {}} />
     </div>
   );
 }
 
-interface ConnectionStatusProps {
-  connectionState: 'connecting' | 'connected' | 'disconnected' | 'reconnecting';
+function ConnectionStatus({
+  connectionState,
+  onReconnect,
+  shouldReduceMotion,
+}: {
+  connectionState?: 'connecting' | 'connected' | 'disconnected' | 'reconnecting';
   onReconnect: () => void;
-}
-
-function ConnectionStatus({ connectionState, onReconnect }: ConnectionStatusProps) {
-  if (connectionState === 'disconnected') return null;
-
+  shouldReduceMotion: boolean;
+}) {
   const statusConfig = {
-    connecting: { icon: <Loader2 className="w-4 h-4 animate-spin" />, color: 'text-amber-400', text: 'Conectando...' },
-    connected: { icon: null, color: 'text-green-400', text: 'Conectado' },
-    reconnecting: { icon: <Loader2 className="w-4 h-4 animate-spin" />, color: 'text-amber-400', text: 'Reconectando...' },
-  };
+    connecting: { color: 'text-text-muted', text: 'Conectando...' },
+    connected: { color: 'text-success', text: 'Conectado' },
+    reconnecting: { color: 'text-text-muted', text: 'Reconectando...' },
+  } as const;
 
-  const config = statusConfig[connectionState];
+  const config = connectionState ? statusConfig[connectionState as keyof typeof statusConfig] : undefined;
+  if (!config) return null;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      className="fixed bottom-6 left-6 z-40"
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
     >
-      <div className={`flex items-center gap-2 px-3 py-2 rounded-full bg-panel/90 backdrop-blur-sm border border-line/50 text-sm font-medium ${config.color}`}>
-        {config.icon}
-        <span className="font-mono">{config.text}</span>
+      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface border border-border text-xs font-mono ${config.color}`}>
+        <span className={`w-2 h-2 rounded-full status-dot ${
+          connectionState === 'connecting' ? 'connecting' :
+          connectionState === 'connected' ? 'connected' :
+          connectionState === 'reconnecting' ? 'reconnecting' :
+          'disconnected'
+        }`} />
+        <span>{config.text}</span>
         {connectionState === 'reconnecting' && (
           <motion.button
             onClick={onReconnect}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="ml-2 px-2 py-1 text-xs bg-panel-raised border border-line rounded hover:bg-panel"
+            className="ml-1.5 px-2 py-0.5 text-xs bg-surface-raised border border-border rounded hover:bg-surface-raised font-mono"
           >
-            Reintentar ahora
+            Reintentar
           </motion.button>
         )}
       </div>

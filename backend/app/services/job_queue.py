@@ -1,8 +1,9 @@
 import asyncio
+import json
 import logging
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, Integer, String, delete, select
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text, delete, event, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -39,6 +40,10 @@ class JobModel(Base):
     audio_quality: Mapped[str] = mapped_column(String(16), default="320")
     video_quality: Mapped[str] = mapped_column(String(16), default=VideoQuality.BEST)
     folder: Mapped[str] = mapped_column(String(256), default="")
+    output_path: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    output_files: Mapped[str | None] = mapped_column(Text, nullable=True)
+    playlist_title: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    failed_items: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     def to_job(self) -> Job:
         return Job(
@@ -60,6 +65,10 @@ class JobModel(Base):
             audio_quality=self.audio_quality,
             video_quality=VideoQuality(self.video_quality),
             folder=self.folder,
+            output_path=self.output_path,
+            output_files=json.loads(self.output_files) if self.output_files else None,
+            playlist_title=self.playlist_title,
+            failed_items=json.loads(self.failed_items) if self.failed_items else None,
         )
 
     @classmethod
@@ -83,6 +92,10 @@ class JobModel(Base):
             audio_quality=job.audio_quality,
             video_quality=job.video_quality.value,
             folder=job.folder,
+            output_path=job.output_path,
+            output_files=json.dumps(job.output_files) if job.output_files else None,
+            playlist_title=job.playlist_title,
+            failed_items=json.dumps(job.failed_items) if job.failed_items else None,
         )
 
 
@@ -92,11 +105,24 @@ class JobQueue:
         self.session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
         self._subscribers: list[asyncio.Queue] = []
         self._running = False
+        self._main_loop: asyncio.AbstractEventLoop | None = None
+
+        @event.listens_for(self.engine.sync_engine, "connect")
+        def _set_sqlite_pragma(dbapi_connection, connection_record):
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA busy_timeout=5000")
+            cursor.close()
+
+    def set_main_loop(self, loop: asyncio.AbstractEventLoop):
+        """Store the main FastAPI event loop for use by sync wrappers."""
+        self._main_loop = loop
+        logger.info("Job queue main loop set")
 
     async def init(self):
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        logger.info("Job queue initialized")
+        logger.info("Job queue initialized (WAL mode)")
 
     async def close(self):
         await self.engine.dispose()
@@ -145,12 +171,28 @@ class JobQueue:
                 model.item_count = job.item_count
                 model.error = job.error
                 model.cancel_requested = job.cancel_requested
+                model.output_path = job.output_path
+                model.output_files = json.dumps(job.output_files) if job.output_files else None
+                model.playlist_title = job.playlist_title
+                model.failed_items = json.dumps(job.failed_items) if job.failed_items else None
                 model.updated_at = datetime.utcnow()
                 await session.commit()
                 await session.refresh(model)
                 await self._notify(await self.list_all())
                 return model.to_job()
             return job
+
+    def update_sync(self, job: Job) -> None:
+        """Synchronous wrapper for update(), safe to call from worker threads.
+        Uses the main event loop via run_coroutine_threadsafe instead of
+        creating a new loop with asyncio.run() each time.
+        """
+        if self._main_loop is None:
+            # Fallback: should never happen in production
+            asyncio.run(self.update(job))
+        else:
+            future = asyncio.run_coroutine_threadsafe(self.update(job), self._main_loop)
+            future.result(timeout=10)
 
     async def list_all(self) -> list[Job]:
         async with self.session_factory() as session:

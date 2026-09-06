@@ -16,22 +16,25 @@ class ConnectionManager:
     async def connect(self, ws: WebSocket):
         await ws.accept()
         self.active.append(ws)
-        logger.debug("WebSocket connected, total: %d", len(self.active))
+        logger.info("WebSocket connected, total: %d", len(self.active))
 
     def disconnect(self, ws: WebSocket):
         if ws in self.active:
             self.active.remove(ws)
-            logger.debug("WebSocket disconnected, total: %d", len(self.active))
+            logger.info("WebSocket disconnected, total: %d", len(self.active))
 
     async def broadcast(self, jobs: list[Job]):
         dead = []
         for ws in self.active:
             try:
                 await ws.send_json([job.to_dict() for job in jobs])
-            except Exception:
+            except Exception as e:
+                logger.debug("Broadcast failed for client, removing: %s", e)
                 dead.append(ws)
         for ws in dead:
             self.disconnect(ws)
+        if dead:
+            logger.debug("Cleaned %d dead WebSocket connections", len(dead))
 
 
 manager = ConnectionManager()
@@ -41,6 +44,7 @@ async def ws_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         jobs = await job_queue.list_all()
+        logger.info("WS client received %d jobs on connect", len(jobs))
         await websocket.send_json([job.to_dict() for job in jobs])
         while True:
             await websocket.receive_text()

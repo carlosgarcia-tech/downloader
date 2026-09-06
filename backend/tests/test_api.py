@@ -156,6 +156,6 @@ class TestSecurity:
     async def test_cors_headers(self, async_client):
         response = await async_client.options(
             "/api/health",
-            headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"},
+            headers={"Origin": "http://localhost:5000", "Access-Control-Request-Method": "GET"},
         )
         assert response.status_code == 200

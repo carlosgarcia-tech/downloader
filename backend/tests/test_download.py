@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
-from app.models.job import AudioFormat, JobStatus, VideoQuality
-from app.services.download import build_ydl_opts, download_worker
+from app.models.job import AudioFormat, JobStatus, Job, VideoQuality
+from app.services.download import _build_single_ydl_opts, download_worker
 
 
 class TestBuildYdlOpts:
@@ -11,7 +11,7 @@ class TestBuildYdlOpts:
         sample_job.audio_quality = "320"
 
         callback = MagicMock()
-        opts = build_ydl_opts(sample_job, callback)
+        opts = _build_single_ydl_opts(sample_job, callback)
 
         assert opts["format"] == "bestaudio/best"
         assert "FFmpegExtractAudio" in str(opts["postprocessors"])
@@ -24,7 +24,7 @@ class TestBuildYdlOpts:
         sample_video_job.video_quality = VideoQuality.Q1080
 
         callback = MagicMock()
-        opts = build_ydl_opts(sample_video_job, callback)
+        opts = _build_single_ydl_opts(sample_video_job, callback)
 
         assert "bestvideo[height<=1080]+bestaudio" in opts["format"]
         assert opts["merge_output_format"] == "mp4"
@@ -34,14 +34,14 @@ class TestBuildYdlOpts:
         sample_video_job.video_quality = VideoQuality.BEST
 
         callback = MagicMock()
-        opts = build_ydl_opts(sample_video_job, callback)
+        opts = _build_single_ydl_opts(sample_video_job, callback)
 
         assert "bestvideo+bestaudio" in opts["format"]
         assert "[height<=" not in opts["format"]
 
     def test_common_opts(self, sample_job):
         callback = MagicMock()
-        opts = build_ydl_opts(sample_job, callback)
+        opts = _build_single_ydl_opts(sample_job, callback)
 
         assert opts["windowsfilenames"] is True
         assert opts["quiet"] is True

@@ -34,15 +34,14 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
-      - ./frontend:/app/frontend
+      - ./backend:/app/backend
       - ./downloads:/app/downloads
       - ./data:/app/data
     environment:
       - MAX_CONCURRENT_DOWNLOADS=2
       - LOG_LEVEL=DEBUG
       - CORS_ORIGINS=["*"]
-    command: python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app
+    command: python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/backend
     profiles:
       - dev
 

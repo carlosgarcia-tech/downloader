@@ -42,10 +42,9 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application code
-COPY --chown=appuser:appuser backend/app ./app
-COPY --chown=appuser:appuser backend/main.py .
-COPY --chown=appuser:appuser frontend ./frontend
+# Copy application code (keep the backend/ layout so config paths resolve
+# the same way as a local run: <root>/backend + <root>/downloads + <root>/data)
+COPY --chown=appuser:appuser backend /app/backend
 
 # Create data directories
 RUN mkdir -p downloads data && chown -R appuser:appuser /app
@@ -57,4 +56,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
-CMD ["python3", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python3", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

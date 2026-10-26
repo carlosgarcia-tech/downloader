@@ -144,6 +144,17 @@ def _consolidate_job(job_id: str, jp: _JobProgress, job_queue):
         logger.error("[job=%s] Consolidator DB write failed: %s", job_id, e)
 
 
+def _remove_partial(path: str | None):
+    """Best-effort delete of a partial download file after cancellation."""
+    if not path:
+        return
+    try:
+        os.unlink(path)
+        logger.info("Removed partial file after cancel: %s", path)
+    except OSError as e:
+        logger.debug("Could not remove partial file %s: %s", path, e)
+
+
 # ---------------------------------------------------------------------------
 # Item download — runs in item_executor, acquires global semaphore
 # ---------------------------------------------------------------------------
@@ -155,6 +166,8 @@ def _download_item(
     update_callback: Callable[[Job], None],
 ):
     """Download a single item from a playlist.  Runs in item_executor pool."""
+    # mutable holder for the in-flight partial file (cancel cleanup)
+    partial: dict[str, str | None] = {"path": None}
     item_state = _ItemState(index=item_index)
     with jp.lock:
         jp.items[item_index] = item_state
@@ -176,11 +189,16 @@ def _download_item(
         output_dir.mkdir(parents=True, exist_ok=True)
 
         def _item_progress_hook(d: dict):
+            # Abort the yt-dlp download immediately; raised OUTSIDE the
+            # try/except on purpose — it must propagate out of the hook.
+            if job.cancel_requested:
+                raise yt_dlp.utils.DownloadCancelled()
             try:
                 status = d.get("status")
                 info = d.get("info_dict") or {}
 
                 if status == "downloading":
+                    partial["path"] = d.get("filename")
                     total = d.get("total_bytes") or d.get("total_bytes_estimate")
                     downloaded = d.get("downloaded_bytes", 0)
                     pct = round((downloaded / total) * 100, 1) if total else 0
@@ -290,21 +308,29 @@ def _download_item(
         logger.error("[job=%s][item=%d] DownloadError: %s", job.id, item_index, str(e)[:300])
         with jp.lock:
             item_state.status = "error"
-            jp.failed_items.append({
-                "index": item_index,
-                "title": item_state.title,
-                "error": str(e)[:500],
-            })
+            if job.cancel_requested:
+                jp.failed_items.append({"index": item_index, "error": "Cancelled"})
+            else:
+                jp.failed_items.append({
+                    "index": item_index,
+                    "title": item_state.title,
+                    "error": str(e)[:500],
+                })
     except Exception as e:
         logger.exception("[job=%s][item=%d] Unexpected error", job.id, item_index)
         with jp.lock:
             item_state.status = "error"
-            jp.failed_items.append({
-                "index": item_index,
-                "title": item_state.title,
-                "error": str(e)[:500],
-            })
+            if job.cancel_requested:
+                jp.failed_items.append({"index": item_index, "error": "Cancelled"})
+            else:
+                jp.failed_items.append({
+                    "index": item_index,
+                    "title": item_state.title,
+                    "error": str(e)[:500],
+                })
     finally:
+        if job.cancel_requested and item_state.status != "completed":
+            _remove_partial(partial["path"])
         _global_semaphore.release()
         jp.done_event.set()
 
@@ -321,12 +347,17 @@ def _build_single_ydl_opts(job: Job, update_callback: Callable[[Job], None]) -> 
 
     def _progress_hook(d: dict):
         """Progress hook for single-track downloads — writes directly to DB."""
+        # Abort the yt-dlp download immediately (must propagate, hence the
+        # cancel check stays OUTSIDE the try/except below).
+        if job.cancel_requested:
+            raise yt_dlp.utils.DownloadCancelled()
         job_ref = None
         try:
             status = d.get("status")
             info = d.get("info_dict") or {}
 
             if status == "downloading":
+                partial["path"] = d.get("filename")
                 total = d.get("total_bytes") or d.get("total_bytes_estimate")
                 downloaded = d.get("downloaded_bytes", 0)
                 pct = round((downloaded / total) * 100, 1) if total else 0
@@ -458,6 +489,8 @@ def _is_playlist_url(url: str) -> bool:
 # Main download worker — entry point submitted to the job executor
 # ---------------------------------------------------------------------------
 def download_worker(job: Job, update_callback: Callable[[Job], None]) -> Job:
+    from app.services.job_queue import job_queue
+
     logger.info("[job=%s] Worker started — url=%s mode=%s", job.id, job.url[:80], job.mode.value)
 
     try:
@@ -479,6 +512,8 @@ def download_worker(job: Job, update_callback: Callable[[Job], None]) -> Job:
             job.status = JobStatus.ERROR
             job.error = str(e)[:500]
             logger.exception("[job=%s] Unexpected error in download worker", job.id)
+    finally:
+        job_queue.unregister(job.id)
 
     logger.info("[job=%s] Worker finished — status=%s", job.id, job.status.value)
     update_callback(job)
@@ -487,8 +522,15 @@ def download_worker(job: Job, update_callback: Callable[[Job], None]) -> Job:
 
 def _download_single(job: Job, update_callback: Callable[[Job], None]) -> Job:
     """Download a single track (no playlist parallelism)."""
+    partial: dict[str, str | None] = {"path": None}
     _global_semaphore.acquire()
     try:
+        if job.cancel_requested:
+            job.status = JobStatus.CANCELLED
+            logger.info("[job=%s] Job cancelled before start", job.id)
+            update_callback(job)
+            return job
+
         ydl_opts = _build_single_ydl_opts(job, update_callback)
 
         logger.info("[job=%s] Calling yt_dlp.YoutubeDL.download(%s)", job.id, job.url[:80])
@@ -525,6 +567,8 @@ def _download_single(job: Job, update_callback: Callable[[Job], None]) -> Job:
             job.error = str(e)[:500]
             logger.exception("[job=%s] Unexpected error in download worker", job.id)
     finally:
+        if job.cancel_requested and not job.output_files:
+            _remove_partial(partial["path"])
         _global_semaphore.release()
 
     logger.info("[job=%s] Worker finished — status=%s", job.id, job.status.value)

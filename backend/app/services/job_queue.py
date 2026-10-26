@@ -3,7 +3,7 @@ import json
 import logging
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text, delete, event, select
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text, delete, event, select, update
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -104,6 +104,10 @@ class JobQueue:
         self.engine = create_async_engine(settings.database_url, echo=False)
         self.session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
         self._subscribers: list[asyncio.Queue] = []
+        # In-memory Job objects in flight (registered on create, unregistered
+        # when the worker finishes).  cancel() flags these directly so worker
+        # threads see cancellation without polling the DB.
+        self._memory: dict[str, Job] = {}
         self._running = False
         self._main_loop: asyncio.AbstractEventLoop | None = None
 
@@ -122,7 +126,32 @@ class JobQueue:
     async def init(self):
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            # Jobs can get stuck in a non-terminal state if the server dies
+            # mid-download; sweep them so they don't show as "pending" forever.
+            result = await conn.execute(
+                update(JobModel)
+                .where(
+                    JobModel.status.in_(
+                        [
+                            JobStatus.QUEUED.value,
+                            JobStatus.STARTING.value,
+                            JobStatus.DOWNLOADING.value,
+                            JobStatus.PROCESSING.value,
+                        ]
+                    )
+                )
+                .values(status=JobStatus.ERROR.value, error="Servidor reiniciado — trabajo interrumpido")
+            )
+            if result.rowcount:
+                logger.info("Reset %d stuck jobs after restart", result.rowcount)
         logger.info("Job queue initialized (WAL mode)")
+
+    def register(self, job_id: str, job: Job):
+        """Keep a reference to the live Job object a worker thread is using."""
+        self._memory[job_id] = job
+
+    def unregister(self, job_id: str):
+        self._memory.pop(job_id, None)
 
     async def close(self):
         await self.engine.dispose()
@@ -170,7 +199,9 @@ class JobQueue:
                 model.item_index = job.item_index
                 model.item_count = job.item_count
                 model.error = job.error
-                model.cancel_requested = job.cancel_requested
+                # Preserve cancel flags set between progress writes by one-off
+                # Job snapshots (they carry cancel_requested=False).
+                model.cancel_requested = job.cancel_requested or model.cancel_requested
                 model.output_path = job.output_path
                 model.output_files = json.dumps(job.output_files) if job.output_files else None
                 model.playlist_title = job.playlist_title
@@ -210,6 +241,10 @@ class JobQueue:
             ):
                 model.cancel_requested = True
                 await session.commit()
+                # Flag the live object so worker threads/hooks abort immediately
+                live = self._memory.get(job_id)
+                if live:
+                    live.cancel_requested = True
                 await self._notify(await self.list_all())
                 return True
             return False

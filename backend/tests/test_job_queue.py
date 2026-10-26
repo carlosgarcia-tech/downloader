@@ -50,6 +50,15 @@ class TestJobQueue:
         assert job.cancel_requested is True
 
     @pytest.mark.asyncio
+    async def test_cancel_flags_live_object(self, test_job_queue, sample_job):
+        await test_job_queue.create(sample_job)
+        test_job_queue.register(sample_job.id, sample_job)
+        await test_job_queue.cancel(sample_job.id)
+        # The in-memory object the worker holds must see the cancel flag
+        assert sample_job.cancel_requested is True
+        test_job_queue.unregister(sample_job.id)
+
+    @pytest.mark.asyncio
     async def test_cancel_nonexistent_job(self, test_job_queue):
         result = await test_job_queue.cancel("nonexistent")
         assert result is False

@@ -74,6 +74,9 @@ async def create_jobs(req: JobCreate, request: Request):
             folder=req.folder,
         )
         await job_queue.create(job)
+        # Register the in-memory object so cancel() can flag THIS instance
+        # (the worker threads check job.cancel_requested on this object)
+        job_queue.register(job.id, job)
         logger.info("[%s] Job created: id=%s url=%s mode=%s", client, job.id, url[:80], req.mode.value)
         executor.submit(download_worker, job, job_queue.update_sync)
         created.append(job.id)

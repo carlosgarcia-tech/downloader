@@ -338,7 +338,18 @@ def _download_item(
 # ---------------------------------------------------------------------------
 # Build yt-dlp options for a single (non-playlist) download
 # ---------------------------------------------------------------------------
-def _build_single_ydl_opts(job: Job, update_callback: Callable[[Job], None]) -> dict:
+def _build_single_ydl_opts(
+    job: Job,
+    update_callback: Callable[[Job], None],
+    partial: dict | None = None,
+) -> dict:
+    """Build yt-dlp opts for a single track.
+
+    `partial` (optional) is filled by the progress hook with the in-flight
+    file path so the caller can clean it up on cancellation.
+    """
+    if partial is None:
+        partial = {"path": None}
     folder = (job.folder or "").strip()
     output_dir = settings.downloads_dir / folder if folder else settings.downloads_dir
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -531,7 +542,7 @@ def _download_single(job: Job, update_callback: Callable[[Job], None]) -> Job:
             update_callback(job)
             return job
 
-        ydl_opts = _build_single_ydl_opts(job, update_callback)
+        ydl_opts = _build_single_ydl_opts(job, update_callback, partial)
 
         logger.info("[job=%s] Calling yt_dlp.YoutubeDL.download(%s)", job.id, job.url[:80])
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:

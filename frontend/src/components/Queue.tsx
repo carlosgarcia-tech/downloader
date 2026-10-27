@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import type { Job } from '../types/api';
 import { JobItem } from './JobItem';
@@ -141,18 +141,20 @@ export function Queue({ jobs }: QueueProps) {
         </button>
       </div>
 
-      {/* Job list */}
+      {/* Job list — exits/removals animate out even while reordering */}
       <motion.div layout className="space-y-2">
-        {jobs.map((job) => (
-          <JobItem
-            key={job.id}
-            job={job}
-            onCancel={handleCancel}
-            onRetry={handleRetry}
-            onOpenFolder={() => {}}
-            queuedIndex={job.status === 'queued' ? jobs.filter(j => j.status === 'queued').indexOf(job) : undefined}
-          />
-        ))}
+        <AnimatePresence initial={false}>
+          {jobs.map((job) => (
+            <JobItem
+              key={job.id}
+              job={job}
+              onCancel={handleCancel}
+              onRetry={handleRetry}
+              onOpenFolder={() => {}}
+              queuedIndex={job.status === 'queued' ? jobs.filter(j => j.status === 'queued').indexOf(job) : undefined}
+            />
+          ))}
+        </AnimatePresence>
       </motion.div>
     </motion.section>
   );

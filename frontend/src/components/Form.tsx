@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, FormEvent } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { DownloadSimple, Link as LinkIcon, MonitorPlay, MusicNote, ArrowCounterClockwise, X } from '@phosphor-icons/react';
 import { api } from '../services/api';
 import type { CreateJobRequest, AudioFormat, VideoQuality } from '../types/api';
@@ -18,6 +18,7 @@ https://youtube.com/watch?v=...
 export function Form() {
   const { showToast } = useToast();
   const urlsRef = useRef<HTMLTextAreaElement>(null);
+  const reduced = !!useReducedMotion();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [urlCount, setUrlCount] = useState(0);
@@ -212,20 +213,26 @@ export function Form() {
                   onClick={() => setFormData(prev => ({ ...prev, mode }))}
                   role="radio"
                   aria-checked={active}
-                  className={`flex items-center justify-center gap-2.5 py-3 rounded-md text-sm font-bold transition-all duration-200 ${
-                    active
-                      ? 'bg-surface-raised text-text border border-border-strong shadow-[0_2px_8px_rgba(0,0,0,0.5)]'
-                      : 'text-text-dim border border-transparent hover:text-text-muted'
-                  }`}
+                  className="relative flex items-center justify-center gap-2.5 py-3 rounded-md text-sm font-bold transition-colors duration-150"
                 >
-                  {mode === 'audio' ? (
-                    <MusicNote weight={active ? 'fill' : 'regular'} size={18} className={active ? 'text-action-strong' : ''} />
-                  ) : (
-                    <MonitorPlay weight={active ? 'fill' : 'regular'} size={18} className={active ? 'text-action-strong' : ''} />
+                  {active && (
+                    <motion.span
+                      layoutId="mode-thumb"
+                      transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 40 }}
+                      className="absolute inset-0 rounded-md bg-surface-raised border border-border-strong shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                      aria-hidden="true"
+                    />
                   )}
-                  <span>{mode === 'audio' ? 'Audio' : 'Video'}</span>
-                  <span className="text-[10px] font-mono font-normal text-text-dim hidden sm:inline">
-                    {mode === 'audio' ? 'MP3 · M4A · FLAC' : 'MP4 hasta 4K'}
+                  <span className={`relative flex items-center justify-center gap-2.5 transition-colors duration-150 ${active ? '' : 'text-text-dim hover:text-text-muted'}`}>
+                    {mode === 'audio' ? (
+                      <MusicNote weight={active ? 'fill' : 'regular'} size={18} className={active ? 'text-action-strong' : ''} />
+                    ) : (
+                      <MonitorPlay weight={active ? 'fill' : 'regular'} size={18} className={active ? 'text-action-strong' : ''} />
+                    )}
+                    <span className={active ? 'text-text' : ''}>{mode === 'audio' ? 'Audio' : 'Video'}</span>
+                    <span className="text-[10px] font-mono font-normal text-text-dim hidden sm:inline">
+                      {mode === 'audio' ? 'MP3 · M4A · FLAC' : 'MP4 hasta 4K'}
+                    </span>
                   </span>
                 </button>
               );

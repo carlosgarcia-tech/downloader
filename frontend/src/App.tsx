@@ -43,6 +43,8 @@ function AppContent() {
     enabled: true,
   });
 
+  const hasPreview = jobs.some(j => j.is_playlist && j.songs && j.songs.length > 0);
+
   const transitionConfig = shouldReduceMotion
     ? { duration: 0 }
     : { duration: 0.4, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] };
@@ -96,20 +98,24 @@ function AppContent() {
           </motion.p>
         </motion.header>
 
-        {/* Main content — strict grid: action left, context right */}
+        {/* Main content — strict grid: action left, context right.
+            Collapses to a single centered column when there's no playlist
+            to preview (the aside would render empty otherwise). */}
         <motion.div
           initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={shouldReduceMotion ? { duration: 0 } : { delay: 0.2, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
         >
-          <div className="lg:col-span-7 space-y-6">
+          <div className={`space-y-6 ${hasPreview ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
             <Form />
             <Queue jobs={jobs} />
           </div>
-          <aside className="hidden lg:block lg:col-span-5">
-            <PlaylistPreview jobs={jobs} />
-          </aside>
+          {hasPreview && (
+            <aside className="hidden lg:block lg:col-span-5">
+              <PlaylistPreview jobs={jobs} />
+            </aside>
+          )}
         </motion.div>
       </main>
     </div>

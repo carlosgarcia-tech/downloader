@@ -133,7 +133,11 @@ async def retry_job(job_id: str, request: Request):
 
     await job_queue.create(job)
     job_queue.register(job.id, job)
-    logger.info("[%s] Retry job created: id=%s (from %s)", client, job.id, old.id)
+    # Replace the old job: deleting it prevents re-clicking retry on the same
+    # row from piling up duplicate downloads (seen in the wild: one failed
+    # playlist retried 3x = 3 concurrent copies)
+    await job_queue.delete(old.id)
+    logger.info("[%s] Retry job created: id=%s (replacing %s)", client, job.id, old.id)
     executor.submit(download_worker, job, job_queue.update_sync)
     return {"id": job.id}
 

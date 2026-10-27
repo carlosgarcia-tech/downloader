@@ -241,6 +241,17 @@ class JobQueue:
             result = await session.execute(select(JobModel).order_by(JobModel.created_at.desc()))
             return [m.to_job() for m in result.scalars().all()]
 
+    async def delete(self, job_id: str) -> bool:
+        """Hard delete a job row (used by retry to replace the old job)."""
+        async with self.session_factory() as session:
+            model = await session.get(JobModel, job_id)
+            if not model:
+                return False
+            await session.delete(model)
+            await session.commit()
+            await self._notify(await self.list_all())
+            return True
+
     async def cancel(self, job_id: str) -> bool:
         async with self.session_factory() as session:
             model = await session.get(JobModel, job_id)

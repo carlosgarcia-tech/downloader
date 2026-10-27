@@ -305,24 +305,30 @@ def _download_item(
                 item_state.progress = 100.0
 
     except yt_dlp.utils.DownloadError as e:
-        logger.error("[job=%s][item=%d] DownloadError: %s", job.id, item_index, str(e)[:300])
-        with jp.lock:
-            item_state.status = "error"
-            if job.cancel_requested:
+        if job.cancel_requested:
+            logger.info("[job=%s][item=%d] Cancelled mid-download", job.id, item_index)
+            with jp.lock:
+                item_state.status = "error"
                 jp.failed_items.append({"index": item_index, "error": "Cancelled"})
-            else:
+        else:
+            logger.error("[job=%s][item=%d] DownloadError: %s", job.id, item_index, str(e)[:300])
+            with jp.lock:
+                item_state.status = "error"
                 jp.failed_items.append({
                     "index": item_index,
                     "title": item_state.title,
                     "error": str(e)[:500],
                 })
     except Exception as e:
-        logger.exception("[job=%s][item=%d] Unexpected error", job.id, item_index)
-        with jp.lock:
-            item_state.status = "error"
-            if job.cancel_requested:
+        if job.cancel_requested:
+            logger.info("[job=%s][item=%d] Cancelled mid-download", job.id, item_index)
+            with jp.lock:
+                item_state.status = "error"
                 jp.failed_items.append({"index": item_index, "error": "Cancelled"})
-            else:
+        else:
+            logger.exception("[job=%s][item=%d] Unexpected error", job.id, item_index)
+            with jp.lock:
+                item_state.status = "error"
                 jp.failed_items.append({
                     "index": item_index,
                     "title": item_state.title,

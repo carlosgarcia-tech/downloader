@@ -195,7 +195,8 @@ class TestRetryRoutes:
         assert retried["status"] == "queued"
         assert retried["folder"] == target["folder"]
         assert str(retried["url"]) == str(target["url"])
+        # the retried-from job is replaced (no duplicate pile-up)
+        assert not any(j["id"] == job_id for j in jobs)
 
-        # clean up the fake jobs
+        # clean up the fake job
         await async_client.delete(f"/api/jobs/{new_id}")
-        await async_client.delete(f"/api/jobs/{job_id}")

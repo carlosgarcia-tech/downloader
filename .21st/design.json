@@ -1,0 +1,24 @@
+{
+  "decisions": [
+    {
+      "name": "Descargador Premium (Hardcore Profesional)",
+      "date": "2026-10-26",
+      "source": "design_system_ui_specs.md",
+      "tokens": {
+        "bg": "#0a0a0f",
+        "surface": "#14141e",
+        "input": "#0c0c12",
+        "border": "#262635",
+        "action": "#e50914",
+        "action-strong": "#ff1e27",
+        "action-dark": "#b20710",
+        "text": "#e2e8f0",
+        "text-muted": "#94a3b8",
+        "success": "#10b981"
+      },
+      "typography": "Plus Jakarta Sans",
+      "icons": "@phosphor-icons/react (bold/fill)",
+      "signature": "inset receptacles instead of diffuse shadows; barber-pole progress (carmine/dark-red); 12-col grid with sticky playlist-preview sidebar; cover mix-blend-luminosity restored on hover"
+    }
+  ]
+}

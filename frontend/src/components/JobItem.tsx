@@ -1,8 +1,13 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  X, DownloadSimple, ArrowClockwise, CaretDown, CheckCircle, XCircle,
+  WarningCircle, Prohibit, Clock, MusicNote, VideoCamera, Playlist, FolderOpen,
+} from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import type { Job, SongProgress } from '../types/api';
+import { formatSpeed, formatEta } from '../lib/format';
 
 interface JobItemProps {
   job: Job;
@@ -25,75 +30,36 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_CLASSES: Record<string, string> = {
-  queued: 'badge-queued',
-  starting: 'badge-downloading',
-  downloading: 'badge-downloading',
-  processing: 'badge-processing',
-  completed: 'badge-completed',
-  error: 'badge-error',
-  cancelled: 'badge-cancelled',
+  queued: 'badge badge-queued',
+  starting: 'badge badge-downloading',
+  downloading: 'badge badge-downloading',
+  processing: 'badge badge-processing',
+  completed: 'badge badge-completed',
+  error: 'badge badge-error',
+  cancelled: 'badge badge-cancelled',
 };
 
 function StatusIcon({ status }: { status: string }) {
-  const size = "w-3 h-3";
   switch (status) {
     case 'queued':
-      return (
-        <svg className={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline points="12 6 12 12 16 14"/>
-        </svg>
-      );
+      return <Clock weight="bold" size={12} />;
     case 'starting':
     case 'downloading':
     case 'processing':
       return (
-        <svg className={cn(size, "animate-spin")} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3 h-3 animate-spin">
           <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
         </svg>
       );
     case 'completed':
-      return (
-        <svg className={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
-      );
+      return <CheckCircle weight="fill" size={12} />;
     case 'error':
-      return (
-        <svg className={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="15" y1="9" x2="9" y2="15"/>
-          <line x1="9" y1="9" x2="15" y2="15"/>
-        </svg>
-      );
+      return <XCircle weight="fill" size={12} />;
     case 'cancelled':
-      return (
-        <svg className={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      );
+      return <Prohibit weight="bold" size={12} />;
     default:
-      return (
-        <svg className={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-        </svg>
-      );
+      return <Clock weight="bold" size={12} />;
   }
-}
-
-function formatSpeed(bytesPerSec?: number): string {
-  if (!bytesPerSec) return '';
-  const kb = bytesPerSec / 1024;
-  if (kb < 1024) return `${Math.round(kb)} KB/s`;
-  return `${(kb / 1024).toFixed(1)} MB/s`;
-}
-
-function formatEta(seconds?: number): string {
-  if (!seconds || seconds < 0) return '';
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 function escapeHtml(str: string): string {
@@ -129,11 +95,12 @@ export function JobItem({
     <motion.li
       key={job.id}
       className={cn(
-        'group relative bg-surface border border-border rounded p-4',
+        'group relative bg-surface border rounded-lg p-4',
         'transition-all duration-200 hover:bg-surface-raised',
-        isActive && 'ring-1 ring-warning/30',
-        isCompleted && 'ring-1 ring-success/20',
-        isError && 'ring-1 ring-danger/30'
+        isActive && 'border-action/40',
+        isCompleted && 'border-border opacity-80',
+        isError && 'border-action/60',
+        !isActive && !isCompleted && !isError && 'border-border'
       )}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -147,13 +114,21 @@ export function JobItem({
           <img
             src={job.thumbnail}
             alt=""
-            className="flex-shrink-0 w-10 h-10 rounded object-cover bg-bg border border-border"
+            className={cn(
+              'flex-shrink-0 w-10 h-10 rounded-md object-cover bg-input border border-border',
+              isCompleted && 'grayscale'
+            )}
           />
         ) : (
-          <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded bg-bg border border-border relative overflow-hidden">
+          <div
+            className={cn(
+              'flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-md bg-input border border-border relative overflow-hidden',
+              isCompleted && 'grayscale'
+            )}
+          >
             <span className="relative z-10 text-base text-text-muted"><StatusIcon status={job.status} /></span>
             {isActive && (
-              <div className="absolute inset-0 bg-action/5" />
+              <div className="absolute inset-0 bg-action-dim" />
             )}
           </div>
         )}
@@ -172,23 +147,14 @@ export function JobItem({
                     : statusLabel}
                 </span>
                 {job.mode === 'audio' && (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-action">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polygon points="10 8 16 12 10 16 10 8"/>
-                    <line x1="12" y1="8" x2="12" y2="16"/>
-                  </svg>
+                  <MusicNote weight="bold" size={12} className="text-action-strong" />
                 )}
                 {job.mode === 'video' && (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
-                    <polygon points="23 7 16 12 23 17 23 7"/>
-                    <rect x="1" y="5" width="15" height="14" rx="2"/>
-                  </svg>
+                  <VideoCamera weight="bold" size={12} className="text-text-muted" />
                 )}
                 {job.is_playlist && job.playlist_title && (
                   <span className="text-xs text-text-muted flex items-center gap-1 font-mono">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                    </svg>
+                    <Playlist weight="bold" size={12} />
                     {escapeHtml(job.playlist_title)}
                   </span>
                 )}
@@ -201,12 +167,7 @@ export function JobItem({
                   <span className="text-text-dim italic">Resolviendo título…</span>
                 )}
                 {job.item_index && job.item_count && (
-                  <span className="flex items-center gap-1 text-action">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"/>
-                      <polygon points="10 8 16 12 10 16 10 8"/>
-                      <line x1="12" y1="8" x2="12" y2="16"/>
-                    </svg>
+                  <span className="flex items-center gap-1 text-action-strong">
                     {`Pista ${job.item_index}/${job.item_count}`}
                   </span>
                 )}
@@ -221,56 +182,35 @@ export function JobItem({
                   className="btn-ghost p-2 text-danger hover:bg-danger/10 hover:text-danger rounded"
                   aria-label="Cancelar descarga"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
+                  <X weight="bold" size={16} />
                 </button>
               )}
               {job.status === 'error' && onRetry && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onRetry?.(job.id); }}
-                  className="btn-ghost p-2 text-warning hover:bg-warning/10 hover:text-warning rounded"
+                  className="btn-ghost p-2 text-action-strong hover:bg-action-dim rounded"
                   aria-label="Reintentar descarga"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                  </svg>
+                  <ArrowClockwise weight="bold" size={16} />
                 </button>
               )}
               {isCompleted && job.songs?.[0]?.filePath && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onOpenFolder(job.songs?.[0]?.filePath || ''); }}
+                  onClick={(e) => { e.stopPropagation(); onOpenFolder?.(job.songs?.[0]?.filePath || ''); }}
                   className="btn-ghost p-2 text-success hover:bg-success/10 hover:text-success rounded"
                   aria-label="Abrir carpeta"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
-                  </svg>
+                  <FolderOpen weight="bold" size={16} />
                 </button>
               )}
               {isCompleted && (
                 <a
                   href={`/api/jobs/${job.id}/download`}
                   onClick={(e) => e.stopPropagation()}
-                  className="btn-ghost p-2 text-action hover:bg-action/10 hover:text-action rounded"
+                  className="btn-ghost p-2 text-action-strong hover:bg-action-dim rounded"
                   aria-label={job.output_files ? 'Descargar ZIP' : 'Descargar archivo'}
                 >
-                  {job.output_files ? (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="7 10 12 15 17 10"/>
-                      <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                  ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="7 10 12 15 17 10"/>
-                      <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                  )}
+                  <DownloadSimple weight="bold" size={16} />
                 </a>
               )}
               {job.is_playlist && job.songs && job.songs.length > 0 && (
@@ -279,9 +219,11 @@ export function JobItem({
                   className="btn-ghost p-2 text-text-muted hover:text-text hover:bg-surface-raised rounded"
                   aria-label={expanded ? 'Contraer playlist' : 'Expandir playlist'}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                    <path d="M19 9l-7 7-7-7"/>
-                  </svg>
+                  <CaretDown
+                    weight="bold"
+                    size={16}
+                    style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
+                  />
                 </button>
               )}
             </div>
@@ -298,11 +240,15 @@ export function JobItem({
               >
                 <div className="mt-3">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <div className="progress-track flex-1 relative overflow-hidden">
+                    <div className="flex items-center gap-2 flex-1">
+                      <div className={cn('progress-track flex-1 relative overflow-hidden', isCompleted && 'h-1.5')}>
                         {progress > 0 ? (
                           <motion.div
-                            className="progress-fill absolute top-0 left-0 h-full rounded"
+                            className={cn(
+                              'progress-fill absolute top-0 left-0 h-full rounded-full',
+                              isActive && 'progress-fill-active',
+                              isCompleted && 'progress-fill-done'
+                            )}
                             initial={{ width: 0 }}
                             animate={{ width: `${progress}%` }}
                             transition={{
@@ -311,10 +257,13 @@ export function JobItem({
                             }}
                           />
                         ) : isActive ? (
-                          <div className="progress-fill progress-fill-indeterminate absolute inset-0" />
+                          <div className="progress-fill progress-fill-indeterminate absolute inset-0 rounded-full" />
                         ) : null}
                       </div>
-                      <span className="text-xs font-mono text-text-muted w-12 text-right">
+                      <span className={cn(
+                        'text-xs font-mono w-12 text-right',
+                        isCompleted ? 'text-success' : 'text-text-muted'
+                      )}>
                         {progress > 0 ? `${Math.round(progress)}%` : '---'}
                       </span>
                     </div>
@@ -324,29 +273,18 @@ export function JobItem({
                   {(job.speed || job.eta) && (
                     <div className="flex items-center gap-3 mt-1.5 text-xs font-mono text-text-muted">
                       {job.speed && (
-                        <span className="flex items-center gap-1 text-action">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
-                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                          </svg>
+                        <span className="flex items-center gap-1 text-action-strong">
                           {formatSpeed(job.speed)}
                         </span>
                       )}
                       {job.eta && (
                         <span className="flex items-center gap-1 text-text-muted">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12 6 12 12 16 14"/>
-                          </svg>
+                          <Clock weight="bold" size={12} />
                           ETA {formatEta(job.eta)}
                         </span>
                       )}
                       {job.item_index && job.item_count && !job.speed && !job.eta && (
                         <span className="flex items-center gap-1 text-text-muted">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polygon points="10 8 16 12 10 16 10 8"/>
-                            <line x1="12" y1="8" x2="12" y2="16"/>
-                          </svg>
                           {`Pista ${job.item_index}/${job.item_count}`}
                         </span>
                       )}
@@ -365,15 +303,11 @@ export function JobItem({
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mt-3 p-3 bg-danger-dim border border-danger/20 rounded flex items-start gap-3"
+                className="mt-3 p-3 bg-danger-dim border border-action/30 rounded-lg flex items-start gap-3"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-danger flex-shrink-0 mt-0.5">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="15" y1="9" x2="9" y2="15"/>
-                  <line x1="9" y1="9" x2="15" y2="15"/>
-                </svg>
+                <WarningCircle weight="fill" size={16} className="text-danger flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-danger font-medium text-sm font-display">Error en la descarga</p>
+                  <p className="text-danger font-bold text-sm">Error en la descarga</p>
                   <p className="text-text-muted text-xs mt-1 font-mono break-all">{escapeHtml(job.error)}</p>
                 </div>
                 {onRetry && (
@@ -381,9 +315,7 @@ export function JobItem({
                     onClick={() => onRetry?.(job.id)}
                     className="btn-danger text-xs whitespace-nowrap flex-shrink-0 mt-1"
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 animate-spin">
-                      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                    </svg>
+                    <ArrowClockwise weight="bold" size={12} className="mr-1" />
                     Reintentar
                   </button>
                 )}
@@ -448,11 +380,11 @@ function SongItem({ song, index, total, isActive, isCompleted, isError }: SongIt
   return (
     <motion.div
       className={cn(
-        'flex items-center gap-2 p-2.5 rounded bg-bg/50 border border-border/30',
+        'flex items-center gap-2 p-2.5 rounded-md bg-input/60 border border-border/30',
         'transition-all duration-200',
-        isActive && 'ring-1 ring-warning/30 bg-action/5',
-        isCompleted && 'ring-1 ring-success/20 bg-success/5',
-        isError && 'ring-1 ring-danger/30 bg-danger/5'
+        isActive && 'border-action/40 bg-action-dim',
+        isCompleted && 'border-border bg-transparent opacity-80',
+        isError && 'border-action/50 bg-danger-dim'
       )}
       layout
       initial={{ opacity: 0, x: -10 }}
@@ -460,7 +392,7 @@ function SongItem({ song, index, total, isActive, isCompleted, isError }: SongIt
       transition={{ delay: index * 0.02 }}
     >
       {/* Number */}
-      <div className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded bg-bg border border-border text-text-muted text-[11px] font-mono font-medium">
+      <div className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded bg-input border border-border text-text-muted text-[11px] font-mono font-medium">
         {index}/{total}
       </div>
 
@@ -471,24 +403,17 @@ function SongItem({ song, index, total, isActive, isCompleted, isError }: SongIt
 
       {/* Song info */}
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-text truncate font-display">{song.title}</p>
+        <p className="font-medium text-text truncate">{song.title}</p>
         <div className="flex items-center gap-2 mt-0.5">
           <span className={cn('text-[11px] font-mono', statusClass)}>{statusLabel}</span>
           {song.speed && (
-            <span className="text-[11px] font-mono text-action flex items-center gap-1">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-              </svg>
+            <span className="text-[11px] font-mono text-action-strong">
               {formatSpeed(song.speed)}
             </span>
           )}
           {song.eta && (
             <span className="text-[11px] font-mono text-text-muted flex items-center gap-1">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-              {formatEta(song.eta)}
+              ETA {formatEta(song.eta)}
             </span>
           )}
         </div>
@@ -496,10 +421,10 @@ function SongItem({ song, index, total, isActive, isCompleted, isError }: SongIt
 
       {/* Mini progress bar */}
       <div className="flex-shrink-0 w-20 sm:w-28 flex items-center gap-2">
-        <div className="progress-track flex-1 h-1.5">
+        <div className="progress-track-thin flex-1">
           {progress > 0 ? (
             <motion.div
-              className="progress-fill h-full rounded"
+              className={cn('progress-fill h-full rounded', isActive && 'progress-fill-active', isCompleted && 'progress-fill-done')}
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
@@ -519,11 +444,7 @@ function SongItem({ song, index, total, isActive, isCompleted, isError }: SongIt
       {isError && song.error && (
         <div className="ml-auto flex-shrink-0">
           <span className="has-tooltip relative cursor-help">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-danger">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="15" y1="9" x2="9" y2="15"/>
-              <line x1="9" y1="9" x2="15" y2="15"/>
-            </svg>
+            <WarningCircle weight="fill" size={12} className="text-danger" />
             <span className="tooltip z-50">
               {song.error}
             </span>

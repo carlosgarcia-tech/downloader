@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { DownloadSimple, Link as LinkIcon, MonitorPlay, MusicNote, ArrowCounterClockwise, X } from '@phosphor-icons/react';
 import { api } from '../services/api';
 import type { CreateJobRequest, AudioFormat, VideoQuality } from '../types/api';
 import { useToast } from '../hooks/useToast.tsx';
@@ -71,9 +72,7 @@ export function Form() {
     setIsSubmitting(true);
 
     try {
-      console.log('[Form] Submitting jobs:', urls.length, 'URLs, mode:', formData.mode);
       await api.createJobs(formData);
-      console.log('[Form] Jobs created successfully');
       setFormData((prev) => ({ ...prev, urls: '' }));
       setUrlCount(0);
     } catch (err) {
@@ -89,60 +88,40 @@ export function Form() {
   }, []);
 
   return (
-    <form className="panel" onSubmit={handleSubmit}>
+    <form className="panel p-5" onSubmit={handleSubmit}>
       <div className="space-y-6">
         {/* URLs Section */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label htmlFor="urls" className="font-medium text-text flex items-center gap-2 font-mono text-sm">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-action">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-                <line x1="10" y1="9" x2="8" y2="9"/>
-              </svg>
+            <label htmlFor="urls" className="font-bold text-text flex items-center gap-2 text-sm">
+              <LinkIcon weight="bold" size={16} className="text-action-strong" />
               <span>Enlaces de YouTube / YouTube Music</span>
             </label>
-            <div className="flex items-center gap-2">
+            {formData.urls && (
               <button
                 type="button"
-                onClick={handlePaste}
+                onClick={handleClearUrls}
                 disabled={isSubmitting}
-                className="btn-ghost"
-                aria-label="Pegar desde portapapeles"
+                className="btn-ghost text-danger hover:text-danger"
+                aria-label="Limpiar enlaces"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-                </svg>
-                <span>Pegar</span>
+                <X weight="bold" size={15} />
+                <span>Limpiar</span>
               </button>
-              {formData.urls && (
-                <button
-                  type="button"
-                  onClick={handleClearUrls}
-                  disabled={isSubmitting}
-                  className="btn-ghost text-danger hover:text-danger"
-                  aria-label="Limpiar enlaces"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                  <span>Limpiar</span>
-                </button>
-              )}
-            </div>
+            )}
           </div>
 
           <div
             className={`relative transition-all duration-200 ${
-              dragOver
-                ? 'ring-1 ring-action bg-action/5 border-action/30'
-                : ''
+              dragOver ? 'ring-1 ring-action border border-action/40' : ''
             }`}
           >
+            {/* Down receptacle with left icon */}
+            <LinkIcon
+              weight="bold"
+              size={16}
+              className="absolute left-3.5 top-3.5 text-text-dim pointer-events-none"
+            />
             <textarea
               ref={urlsRef}
               id="urls"
@@ -171,8 +150,20 @@ export function Form() {
                 }
               }}
               required
-              className="input resize-none transition-all duration-200"
+              className="input resize-none pl-10 pb-11"
             />
+
+            {/* Integrated paste button — bottom-right of the receptacle */}
+            <button
+              type="button"
+              onClick={handlePaste}
+              disabled={isSubmitting}
+              className="absolute bottom-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded border border-border bg-surface-raised text-text-muted hover:text-text hover:border-border-strong transition-colors"
+              aria-label="Pegar desde portapapeles"
+            >
+              <ArrowCounterClockwise weight="bold" size={13} />
+              <span>Pegar</span>
+            </button>
 
             <AnimatePresence mode="wait">
               {dragOver && (
@@ -181,15 +172,11 @@ export function Form() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg bg-action/5 border border-dashed border-action/30"
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-md bg-action-dim border border-dashed border-action"
                 >
-                  <div className="flex flex-col items-center gap-2 text-action px-4">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="17 8 12 3 7 8"/>
-                      <line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    <span className="font-medium font-display">Suelta los enlaces aquí</span>
+                  <div className="flex flex-col items-center gap-2 text-action-strong px-4">
+                    <DownloadSimple weight="fill" size={44} />
+                    <span className="font-bold">Suelta los enlaces aquí</span>
                     <span className="text-text-dim text-xs font-mono">Se detectan playlists y álbumes automáticamente</span>
                   </div>
                 </motion.div>
@@ -200,86 +187,49 @@ export function Form() {
           {urlCount > 0 && (
             <div className="flex items-center justify-between px-3 py-2 bg-surface-raised rounded-lg border border-border animate-slide-up">
               <div className="flex items-center gap-2 text-sm text-text-muted font-mono">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-action animate-spin">
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                </svg>
+                <span className="w-1.5 h-1.5 rounded-full bg-action animate-dot-pulse" />
                 <span>{urlCount} enlace{urlCount > 1 ? 's' : ''} detectado{urlCount > 1 ? 's' : ''}</span>
               </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-dim">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                <polyline points="15 3 21 3 21 9"/>
-                <line x1="10" y1="14" x2="21" y2="3"/>
-              </svg>
             </div>
           )}
         </div>
 
-        {/* Mode Selection */}
+        {/* Mode Selection — physical segmented control */}
         <div className="space-y-4">
-          <label className="font-medium text-text flex items-center gap-2 font-mono text-sm">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
-              <circle cx="12" cy="12" r="10"/>
-              <polygon points="10 8 16 12 10 16 10 8"/>
-              <line x1="12" y1="8" x2="12" y2="16"/>
-            </svg>
-            <span>Modo de descarga</span>
-          </label>
+          <label className="font-bold text-text text-sm">Modo de descarga</label>
 
-          <div className="flex flex-col sm:flex-row gap-3" role="radiogroup" aria-label="Modo de descarga">
-            {(['audio', 'video'] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, mode }))}
-                role="radio"
-                aria-checked={formData.mode === mode}
-                className={`flex-1 flex flex-col items-center gap-3 p-4 sm:p-5 rounded-lg border-2 transition-all duration-200 relative overflow-hidden ${
-                  formData.mode === mode
-                    ? mode === 'audio'
-                      ? 'border-action ring-1 ring-action/20'
-                      : 'border-border-strong ring-1 ring-text/10'
-                    : 'border-border bg-surface hover:border-border-strong hover:bg-surface-raised'
-                }`}
-              >
-                <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
-                  formData.mode === mode
-                    ? mode === 'audio'
-                      ? 'border-2 border-action text-action'
-                      : 'border-2 border-border-strong text-text'
-                    : 'bg-surface-raised border border-border'
-                }`}>
+          <div
+            className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-input shadow-inset-deep"
+            role="radiogroup"
+            aria-label="Modo de descarga"
+          >
+            {(['audio', 'video'] as const).map((mode) => {
+              const active = formData.mode === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, mode }))}
+                  role="radio"
+                  aria-checked={active}
+                  className={`flex items-center justify-center gap-2.5 py-3 rounded-md text-sm font-bold transition-all duration-200 ${
+                    active
+                      ? 'bg-surface-raised text-text border border-border-strong shadow-[0_2px_8px_rgba(0,0,0,0.5)]'
+                      : 'text-text-dim border border-transparent hover:text-text-muted'
+                  }`}
+                >
                   {mode === 'audio' ? (
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={formData.mode === mode ? 'text-action' : 'text-text-muted'}>
-                      <circle cx="12" cy="12" r="10"/>
-                      <polygon points="10 8 16 12 10 16 10 8"/>
-                      <line x1="12" y1="8" x2="12" y2="16"/>
-                    </svg>
+                    <MusicNote weight={active ? 'fill' : 'regular'} size={18} className={active ? 'text-action-strong' : ''} />
                   ) : (
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={formData.mode === mode ? 'text-text' : 'text-text-muted'}>
-                      <polygon points="23 7 16 12 23 17 23 7"/>
-                      <rect x="1" y="5" width="15" height="14" rx="2"/>
-                    </svg>
+                    <MonitorPlay weight={active ? 'fill' : 'regular'} size={18} className={active ? 'text-action-strong' : ''} />
                   )}
-                </div>
-                <div className="text-center">
-                  <span className={`font-display font-medium text-lg ${formData.mode === mode ? 'text-text' : 'text-text-muted'}`}>
-                    {mode === 'audio' ? 'Audio' : 'Video'}
+                  <span>{mode === 'audio' ? 'Audio' : 'Video'}</span>
+                  <span className="text-[10px] font-mono font-normal text-text-dim hidden sm:inline">
+                    {mode === 'audio' ? 'MP3 · M4A · FLAC' : 'MP4 hasta 4K'}
                   </span>
-                  <p className="text-xs text-text-dim mt-1">
-                    {mode === 'audio' ? 'MP3, M4A, FLAC' : 'MP4 hasta 4K'}
-                  </p>
-                </div>
-                {formData.mode === mode && (
-                  <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center ${
-                    mode === 'audio' ? 'bg-action' : 'bg-text'
-                  }`}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#09090b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                  </div>
-                )}
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -294,23 +244,15 @@ export function Form() {
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-4"
             >
-              <label className="font-medium text-text flex items-center gap-2 font-mono text-sm">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
-                  <circle cx="12" cy="12" r="10"/>
-                  <polygon points="10 8 16 12 10 16 10 8"/>
-                  <line x1="12" y1="8" x2="12" y2="16"/>
-                </svg>
-                <span>Opciones de audio</span>
-              </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="audio_format" className="block text-sm text-text-muted mb-1.5 font-mono">Formato</label>
+                  <label htmlFor="audio_format" className="block text-sm text-text-muted mb-1.5 font-bold">Formato</label>
                   <select
                     name="audio_format"
                     id="audio_format"
                     value={formData.audio_format}
                     onChange={(e) => setFormData(prev => ({ ...prev, audio_format: e.target.value as AudioFormat }))}
-                    className="select"
+                    className="select input w-full"
                   >
                     {AUDIO_FORMATS.map((fmt) => (
                       <option key={fmt} value={fmt}>{fmt.toUpperCase()}</option>
@@ -318,13 +260,13 @@ export function Form() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="audio_quality" className="block text-sm text-text-muted mb-1.5 font-mono">Calidad</label>
+                  <label htmlFor="audio_quality" className="block text-sm text-text-muted mb-1.5 font-bold">Calidad</label>
                   <select
                     name="audio_quality"
                     id="audio_quality"
                     value={formData.audio_quality}
                     onChange={(e) => setFormData(prev => ({ ...prev, audio_quality: e.target.value }))}
-                    className="select"
+                    className="select input w-full"
                   >
                     {AUDIO_QUALITIES.map((q) => (
                       <option key={q} value={q}>{q} kbps</option>
@@ -342,23 +284,15 @@ export function Form() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="space-y-4"
             >
-              <label className="font-medium text-text flex items-center gap-2 font-mono text-sm">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
-                  <polygon points="23 7 16 12 23 17 23 7"/>
-                  <rect x="1" y="5" width="15" height="14" rx="2"/>
-                </svg>
-                <span>Opciones de video</span>
-              </label>
               <div>
-                <label htmlFor="video_quality" className="block text-sm text-text-muted mb-1.5 font-mono">Calidad máxima</label>
+                <label htmlFor="video_quality" className="block text-sm text-text-muted mb-1.5 font-bold">Calidad máxima</label>
                 <select
                   name="video_quality"
                   id="video_quality"
                   value={formData.video_quality}
                   onChange={(e) => setFormData(prev => ({ ...prev, video_quality: e.target.value as VideoQuality }))}
-                  className="select max-w-xs"
+                  className="select input max-w-xs w-full"
                 >
                   {VIDEO_QUALITIES.map((q) => (
                     <option key={q} value={q}>
@@ -373,12 +307,7 @@ export function Form() {
 
         {/* Folder */}
         <div className="space-y-2">
-          <label htmlFor="folder" className="font-medium text-text flex items-center gap-2 font-mono text-sm">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span>Subcarpeta (opcional)</span>
-          </label>
+          <label htmlFor="folder" className="font-bold text-text text-sm">Subcarpeta (opcional)</label>
           <input
             type="text"
             id="folder"
@@ -393,13 +322,11 @@ export function Form() {
           </p>
         </div>
 
-        {/* Submit Button */}
+        {/* Submit Button — massive CTA, carmine gradient, glow, physical press */}
         <button
           type="submit"
           disabled={isSubmitting || !formData.urls.trim()}
-          className={`btn-primary w-full py-4 text-lg font-display relative overflow-hidden ${
-            !formData.urls.trim() ? 'opacity-40 cursor-not-allowed' : ''
-          }`}
+          className="btn-primary w-full py-4 text-lg relative overflow-hidden !rounded-lg"
         >
           <span className="relative flex items-center justify-center gap-3">
             <AnimatePresence mode="wait">
@@ -410,9 +337,9 @@ export function Form() {
                   animate={{ opacity: 1, rotate: 0 }}
                   exit={{ opacity: 0, rotate: 90 }}
                   transition={{ duration: 0.2 }}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 font-extrabold"
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#09090b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
                     <circle cx="12" cy="12" r="10" strokeOpacity="0.25"/>
                     <path d="M12 2a10 10 0 0 1 10 10"/>
                   </svg>
@@ -425,13 +352,9 @@ export function Form() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.2 }}
-                  className="flex items-center gap-3"
+                  className="flex items-center gap-3 font-extrabold"
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#09090b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
-                  </svg>
+                  <DownloadSimple weight="bold" size={22} />
                   <span>Descargar</span>
                 </motion.span>
               )}

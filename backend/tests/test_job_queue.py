@@ -129,3 +129,11 @@ class TestJobModel:
         assert restored.thumbnail == "https://img.example/cover.jpg"
         assert restored.songs == sample_job.songs
         assert restored.songs[0].status == "completed"
+
+    def test_is_playlist_derived(self, sample_job):
+        sample_job.url = "https://www.youtube.com/playlist?list=PL123"
+        assert JobModel.from_job(sample_job).to_job().is_playlist is True
+        sample_job.url = "https://www.youtube.com/watch?v=abc"
+        assert JobModel.from_job(sample_job).to_job().is_playlist is False
+        sample_job.playlist_title = "Mi lista"
+        assert JobModel.from_job(sample_job).to_job().is_playlist is True

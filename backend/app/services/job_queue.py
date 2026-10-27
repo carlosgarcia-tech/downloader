@@ -88,6 +88,9 @@ class JobModel(Base):
             folder=self.folder,
             output_path=self.output_path,
             output_files=json.loads(self.output_files) if self.output_files else None,
+            # Not stored: derived — a playlist is any ?list= URL or one that
+            # extracted a playlist title.
+            is_playlist="list=" in self.url or bool(self.playlist_title),
             playlist_title=self.playlist_title,
             failed_items=json.loads(self.failed_items) if self.failed_items else None,
             thumbnail=self.thumbnail,

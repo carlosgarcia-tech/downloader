@@ -94,6 +94,7 @@ class Job(BaseModel):
     folder: str = ""
     output_path: str | None = None
     output_files: list[str] | None = None
+    is_playlist: bool = False
     playlist_title: str | None = None
     failed_items: list[dict] | None = None
     thumbnail: str | None = None

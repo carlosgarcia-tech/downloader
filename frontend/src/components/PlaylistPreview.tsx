@@ -54,8 +54,8 @@ export function PlaylistPreview({ jobs }: PlaylistPreviewProps) {
           </h2>
           <p className="text-text-muted text-xs font-mono mt-1">
             {job.songs?.length} pistas
-            {doneCount > 0 && ` · ${doneCount} listas`}
-            {activeCount > 0 && ` · ${activeCount} activas`}
+            {doneCount > 0 && ` · ${doneCount} ${doneCount > 1 ? 'completadas' : 'completada'}`}
+            {activeCount > 0 && ` · ${activeCount} ${activeCount > 1 ? 'activas' : 'activa'}`}
           </p>
         </div>
       </div>

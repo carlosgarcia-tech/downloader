@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, DownloadSimple, ArrowClockwise, CaretDown, CheckCircle, XCircle,
@@ -27,6 +28,7 @@ const STATUS_LABEL: Record<string, string> = {
   completed: 'Completado',
   error: 'Error',
   cancelled: 'Cancelado',
+  pending: 'En espera',
 };
 
 const STATUS_CLASSES: Record<string, string> = {
@@ -37,6 +39,7 @@ const STATUS_CLASSES: Record<string, string> = {
   completed: 'badge badge-completed',
   error: 'badge badge-error',
   cancelled: 'badge badge-cancelled',
+  pending: 'badge badge-queued',
 };
 
 function StatusIcon({ status }: { status: string }) {
@@ -86,6 +89,12 @@ export function JobItem({
   const statusLabel = STATUS_LABEL[job.status] || job.status;
   const statusClass = STATUS_CLASSES[job.status] || 'badge-queued';
   const canCancel = ['queued', 'starting', 'downloading', 'processing'].includes(job.status);
+
+  // Expansion lives here unless the parent manages it; Queue passes neither
+  // prop, so the "ver detalles" button works without any parent wiring.
+  const [localOpen, setLocalOpen] = useState(false);
+  const isExpanded = onToggleExpand ? !!expanded : localOpen;
+  const toggleExpand = () => (onToggleExpand ? onToggleExpand() : setLocalOpen(o => !o));
 
   const isActive = ['starting', 'downloading', 'processing'].includes(job.status);
   const isCompleted = job.status === 'completed';
@@ -215,14 +224,15 @@ export function JobItem({
               )}
               {job.is_playlist && job.songs && job.songs.length > 0 && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
-                  className="btn-ghost p-2 text-text-muted hover:text-text hover:bg-surface-raised rounded"
-                  aria-label={expanded ? 'Contraer playlist' : 'Expandir playlist'}
+                  onClick={(e) => { e.stopPropagation(); toggleExpand(); }}
+                  className="btn-ghost text-xs text-text-muted hover:text-text hover:bg-surface-raised rounded flex items-center gap-1"
+                  aria-expanded={isExpanded}
                 >
+                  <span>{isExpanded ? 'Ocultar detalles' : 'Ver detalles'}</span>
                   <CaretDown
                     weight="bold"
-                    size={16}
-                    style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
+                    size={12}
+                    style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
                   />
                 </button>
               )}
@@ -327,7 +337,7 @@ export function JobItem({
 
       {/* Playlist/Songs expansion */}
       <AnimatePresence mode="wait">
-        {job.is_playlist && expanded && job.songs && job.songs.length > 0 && (
+        {job.is_playlist && isExpanded && job.songs && job.songs.length > 0 && (
           <motion.div
             key="playlist-expansion"
             initial={{ opacity: 0, height: 0 }}

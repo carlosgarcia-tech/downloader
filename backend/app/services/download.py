@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 import yt_dlp
 
 from app.config import settings
-from app.models.job import DownloadMode, Job, JobStatus
+from app.models.job import DownloadMode, Job, JobStatus, SongProgress
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,8 @@ class _ItemState:
     speed: float = 0.0
     eta: int | None = None
     title: str = ""
-    status: str = "downloading"  # downloading | completed | error
+    status: str = "pending"  # pending | downloading | completed | error
+    error: str | None = None
 
 
 @dataclass
@@ -55,6 +56,24 @@ class _JobProgress:
     output_files: list[str] = field(default_factory=list)
     failed_items: list[dict] = field(default_factory=list)
     done_event: threading.Event = field(default_factory=threading.Event)
+    thumbnail: str | None = None
+
+
+def _songs_snapshot(jp: "_JobProgress") -> list[SongProgress]:
+    """Per-item progress snapshot for the frontend. Caller must hold jp.lock."""
+    return [
+        SongProgress(
+            index=s.index,
+            total=jp.item_count,
+            title=s.title,
+            status=s.status,
+            progress=s.progress,
+            speed=s.speed or None,
+            eta=s.eta,
+            error=s.error,
+        )
+        for s in sorted(jp.items.values(), key=lambda x: x.index)
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -123,6 +142,7 @@ def _consolidate_job(job_id: str, jp: _JobProgress, job_queue):
         # Build output_files copy
         output_files = list(jp.output_files)
         failed_items = list(jp.failed_items)
+        songs = _songs_snapshot(jp)
 
     # Write to DB via the sync wrapper (uses main event loop)
     try:
@@ -138,6 +158,8 @@ def _consolidate_job(job_id: str, jp: _JobProgress, job_queue):
             item_count=jp.item_count,
             output_files=output_files or None,
             failed_items=failed_items or None,
+            thumbnail=jp.thumbnail,
+            songs=songs,
         )
         job_queue.update_sync(job)
     except Exception as e:
@@ -181,6 +203,9 @@ def _download_item(
             logger.info("[job=%s][item=%d] Cancelled before start", job.id, item_index)
             return
 
+        with jp.lock:
+            item_state.status = "downloading"
+
         logger.info("[job=%s][item=%d] Starting download — url=%s", job.id, item_index, url[:80])
 
         # Build yt-dlp options for this individual item
@@ -217,6 +242,7 @@ def _download_item(
                     with jp.lock:
                         item_state.status = "error"
                         item_state.progress = 0
+                        item_state.error = error_msg[:500]
                         jp.failed_items.append({
                             "index": item_index,
                             "title": item_state.title,
@@ -309,11 +335,13 @@ def _download_item(
             logger.info("[job=%s][item=%d] Cancelled mid-download", job.id, item_index)
             with jp.lock:
                 item_state.status = "error"
+                item_state.error = "Cancelled"
                 jp.failed_items.append({"index": item_index, "error": "Cancelled"})
         else:
             logger.error("[job=%s][item=%d] DownloadError: %s", job.id, item_index, str(e)[:300])
             with jp.lock:
                 item_state.status = "error"
+                item_state.error = str(e)[:500]
                 jp.failed_items.append({
                     "index": item_index,
                     "title": item_state.title,
@@ -324,11 +352,13 @@ def _download_item(
             logger.info("[job=%s][item=%d] Cancelled mid-download", job.id, item_index)
             with jp.lock:
                 item_state.status = "error"
+                item_state.error = "Cancelled"
                 jp.failed_items.append({"index": item_index, "error": "Cancelled"})
         else:
             logger.exception("[job=%s][item=%d] Unexpected error", job.id, item_index)
             with jp.lock:
                 item_state.status = "error"
+                item_state.error = str(e)[:500]
                 jp.failed_items.append({
                     "index": item_index,
                     "title": item_state.title,
@@ -388,6 +418,7 @@ def _build_single_ydl_opts(
                     speed=d.get("speed"),
                     eta=d.get("eta"),
                     current_title=info.get("title", ""),
+                    thumbnail=info.get("thumbnail"),
                 )
             elif status == "finished":
                 job_ref = Job(
@@ -432,6 +463,8 @@ def _build_single_ydl_opts(
                         job.current_title = info.get("title", "")
                     if not job.playlist_title:
                         job.playlist_title = info.get("playlist_title") or info.get("playlist", "")
+                    if not job.thumbnail:
+                        job.thumbnail = info.get("thumbnail")
 
                     logger.info(
                         "[job=%s] Postprocessor captured file: %s (output_files=%d)",
@@ -623,6 +656,11 @@ def _download_playlist(job: Job, update_callback: Callable[[Job], None]) -> Job:
     job.item_count = item_count
     if not job.playlist_title:
         job.playlist_title = info.get("title") or info.get("playlist_title") or ""
+    if not job.thumbnail:
+        job.thumbnail = info.get("thumbnail") or next(
+            (t.get("url") for t in reversed(info.get("thumbnails") or []) if t.get("url")),
+            None,
+        )
     job.status = JobStatus.DOWNLOADING
     update_callback(job)
 
@@ -635,9 +673,9 @@ def _download_playlist(job: Job, update_callback: Callable[[Job], None]) -> Job:
     item_urls = []
     for i, entry in enumerate(entries):
         if entry.get("url"):
-            item_urls.append((i, entry["url"]))
+            item_urls.append((i, entry["url"], entry.get("title") or ""))
         elif entry.get("id"):
-            item_urls.append((i, f"https://www.youtube.com/watch?v={entry['id']}"))
+            item_urls.append((i, f"https://www.youtube.com/watch?v={entry['id']}", entry.get("title") or ""))
         else:
             logger.warning("[job=%s][item=%d] Entry has no URL/id, skipping: %s", job.id, i, entry)
             with _active_jobs_lock:
@@ -651,14 +689,14 @@ def _download_playlist(job: Job, update_callback: Callable[[Job], None]) -> Job:
         return job
 
     # --- Step 3: Register progress tracker -----------------------------------
-    jp = _JobProgress(item_count=item_count)
+    jp = _JobProgress(item_count=item_count, thumbnail=job.thumbnail)
     # A retried job carries files the previous attempt already produced —
     # items that were fully downloaded before are skipped by yt-dlp and must
     # still count in this attempt's file list.
     if job.output_files:
         jp.output_files.extend(job.output_files)
-    for idx, _ in item_urls:
-        jp.items[idx] = _ItemState(index=idx)
+    for idx, _, title in item_urls:
+        jp.items[idx] = _ItemState(index=idx, title=title)
 
     with _active_jobs_lock:
         _active_jobs[job.id] = jp
@@ -667,7 +705,7 @@ def _download_playlist(job: Job, update_callback: Callable[[Job], None]) -> Job:
 
     # --- Step 4: Launch item downloads in parallel ---------------------------
     futures = []
-    for idx, url in item_urls:
+    for idx, url, _ in item_urls:
         future = item_executor.submit(_download_item, job, idx, url, jp, update_callback)
         futures.append(future)
 
@@ -682,10 +720,12 @@ def _download_playlist(job: Job, update_callback: Callable[[Job], None]) -> Job:
     with jp.lock:
         output_files = list(jp.output_files)
         failed_items = list(jp.failed_items)
+        songs = _songs_snapshot(jp)
 
     job.output_files = output_files or None
     job.failed_items = failed_items or None
     job.output_path = os.path.dirname(output_files[0]) if output_files else None
+    job.songs = songs
 
     # Remove from active tracking
     with _active_jobs_lock:

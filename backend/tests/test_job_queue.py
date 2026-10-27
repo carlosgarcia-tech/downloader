@@ -116,3 +116,16 @@ class TestJobModel:
         assert model.url == str(sample_job.url)
         assert model.mode == sample_job.mode.value
         assert model.status == sample_job.status.value
+
+    def test_songs_roundtrip(self, sample_job):
+        from app.models.job import SongProgress
+
+        sample_job.songs = [
+            SongProgress(index=0, total=2, title="A", status="completed", progress=100.0),
+            SongProgress(index=1, total=2, title="B", status="pending"),
+        ]
+        sample_job.thumbnail = "https://img.example/cover.jpg"
+        restored = JobModel.from_job(sample_job).to_job()
+        assert restored.thumbnail == "https://img.example/cover.jpg"
+        assert restored.songs == sample_job.songs
+        assert restored.songs[0].status == "completed"

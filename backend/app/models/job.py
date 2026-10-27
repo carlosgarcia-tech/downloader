@@ -61,6 +61,18 @@ class JobCreate(BaseModel):
     folder: str = ""
 
 
+class SongProgress(BaseModel):
+    index: int
+    total: int
+    title: str = ""
+    status: str = "pending"  # pending | downloading | processing | completed | error
+    progress: float = 0.0
+    speed: float | None = None
+    eta: int | None = None
+    error: str | None = None
+    filePath: str | None = None  # noqa: N815 - matches the frontend contract
+
+
 class Job(BaseModel):
     id: str = Field(default_factory=lambda: uuid.uuid4().hex[:8])
     url: str
@@ -84,6 +96,8 @@ class Job(BaseModel):
     output_files: list[str] | None = None
     playlist_title: str | None = None
     failed_items: list[dict] | None = None
+    thumbnail: str | None = None
+    songs: list[SongProgress] | None = None
 
     def to_dict(self) -> dict:
         return self.model_dump(mode="json")

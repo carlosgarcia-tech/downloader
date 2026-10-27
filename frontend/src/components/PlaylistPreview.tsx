@@ -13,6 +13,7 @@ const ROW_STATUS: Record<string, string> = {
   completed: '✓',
   error: 'Error',
   queued: 'En cola',
+  pending: 'En espera',
 };
 
 /**

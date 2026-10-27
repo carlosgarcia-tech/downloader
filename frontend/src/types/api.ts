@@ -7,7 +7,7 @@ export interface SongProgress {
   index: number;
   total: number;
   title: string;
-  status: JobStatus;
+  status: JobStatus | 'pending';
   progress: number;
   speed?: number;
   eta?: number;

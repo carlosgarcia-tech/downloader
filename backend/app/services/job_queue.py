@@ -13,13 +13,21 @@ from sqlalchemy import (
     delete,
     event,
     select,
+    text,
     update,
 )
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.config import settings
-from app.models.job import AudioFormat, DownloadMode, Job, JobStatus, VideoQuality
+from app.models.job import (
+    AudioFormat,
+    DownloadMode,
+    Job,
+    JobStatus,
+    SongProgress,
+    VideoQuality,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +63,8 @@ class JobModel(Base):
     output_files: Mapped[str | None] = mapped_column(Text, nullable=True)
     playlist_title: Mapped[str | None] = mapped_column(String(512), nullable=True)
     failed_items: Mapped[str | None] = mapped_column(Text, nullable=True)
+    thumbnail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    songs: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     def to_job(self) -> Job:
         return Job(
@@ -80,6 +90,8 @@ class JobModel(Base):
             output_files=json.loads(self.output_files) if self.output_files else None,
             playlist_title=self.playlist_title,
             failed_items=json.loads(self.failed_items) if self.failed_items else None,
+            thumbnail=self.thumbnail,
+            songs=[SongProgress(**s) for s in json.loads(self.songs)] if self.songs else None,
         )
 
     @classmethod
@@ -107,6 +119,8 @@ class JobModel(Base):
             output_files=json.dumps(job.output_files) if job.output_files else None,
             playlist_title=job.playlist_title,
             failed_items=json.dumps(job.failed_items) if job.failed_items else None,
+            thumbnail=job.thumbnail,
+            songs=json.dumps([s.model_dump() for s in job.songs]) if job.songs else None,
         )
 
 
@@ -137,6 +151,16 @@ class JobQueue:
     async def init(self):
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            # create_all won't ALTER an existing table — add the newer columns
+            # to pre-existing DBs (ignored if the DB was created fresh).
+            for col, ddl in (
+                ("thumbnail", "TEXT"),
+                ("songs", "TEXT"),
+            ):
+                try:
+                    await conn.execute(text(f"ALTER TABLE jobs ADD COLUMN {col} {ddl}"))
+                except Exception:
+                    pass
             # Jobs can get stuck in a non-terminal state if the server dies
             # mid-download; sweep them so they don't show as "pending" forever.
             result = await conn.execute(
@@ -217,6 +241,8 @@ class JobQueue:
                 model.output_files = json.dumps(job.output_files) if job.output_files else None
                 model.playlist_title = job.playlist_title
                 model.failed_items = json.dumps(job.failed_items) if job.failed_items else None
+                model.thumbnail = job.thumbnail
+                model.songs = json.dumps([s.model_dump() for s in job.songs]) if job.songs else None
                 model.updated_at = datetime.utcnow()
                 await session.commit()
                 await session.refresh(model)

@@ -32,8 +32,13 @@ export function Queue({ jobs }: QueueProps) {
     }
   }, [showToast]);
 
-  const handleRetry = useCallback(() => {
-    showToast('info', 'La funcionalidad de reintentar estará disponible pronto');
+  const handleRetry = useCallback(async (id: string) => {
+    try {
+      await api.retryJob(id);
+      showToast('success', 'Descarga reintentando — se retoma donde quedó');
+    } catch {
+      showToast('error', 'No se pudo reintentar la descarga');
+    }
   }, [showToast]);
 
   const handleClear = useCallback(async () => {

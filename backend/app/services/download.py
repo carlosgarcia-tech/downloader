@@ -646,6 +646,11 @@ def _download_playlist(job: Job, update_callback: Callable[[Job], None]) -> Job:
 
     # --- Step 3: Register progress tracker -----------------------------------
     jp = _JobProgress(item_count=item_count)
+    # A retried job carries files the previous attempt already produced —
+    # items that were fully downloaded before are skipped by yt-dlp and must
+    # still count in this attempt's file list.
+    if job.output_files:
+        jp.output_files.extend(job.output_files)
     for idx, _ in item_urls:
         jp.items[idx] = _ItemState(index=idx)
 

@@ -159,3 +159,43 @@ class TestSecurity:
             headers={"Origin": "http://localhost:5000", "Access-Control-Request-Method": "GET"},
         )
         assert response.status_code == 200
+
+
+class TestRetryRoutes:
+    @pytest.mark.asyncio
+    async def test_retry_not_found(self, async_client):
+        response = await async_client.post("/api/jobs/nonexistent/retry")
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_retry_creates_new_job(self, async_client):
+        with patch("app.api.routes.executor"):
+            created = await async_client.post(
+                "/api/jobs",
+                json={"urls": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "mode": "audio"},
+            )
+            job_id = created.json()["created"][0]
+            original = (await async_client.get("/api/jobs")).json()
+            target = next(j for j in original if j["id"] == job_id)
+
+            # force status to error so it becomes retryable
+            from app.models.job import JobStatus
+            from app.services.job_queue import job_queue
+            job = await job_queue.get(job_id)
+            job.status = JobStatus.ERROR
+            await job_queue.update(job)
+
+            response = await async_client.post(f"/api/jobs/{job_id}/retry")
+        assert response.status_code == 200
+        new_id = response.json()["id"]
+        assert new_id != job_id
+        # new job carries same params and appears in the list, queued
+        jobs = (await async_client.get("/api/jobs")).json()
+        retried = next(j for j in jobs if j["id"] == new_id)
+        assert retried["status"] == "queued"
+        assert retried["folder"] == target["folder"]
+        assert str(retried["url"]) == str(target["url"])
+
+        # clean up the fake jobs
+        await async_client.delete(f"/api/jobs/{new_id}")
+        await async_client.delete(f"/api/jobs/{job_id}")

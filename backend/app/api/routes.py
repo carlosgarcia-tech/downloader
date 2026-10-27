@@ -105,6 +105,39 @@ async def cancel_job(job_id: str, request: Request):
     return {"ok": True}
 
 
+@router.post("/api/jobs/{job_id}/retry", response_model=dict)
+async def retry_job(job_id: str, request: Request):
+    client = request.client.host if request.client else "unknown"
+    logger.info("[%s] POST /api/jobs/%s/retry", client, job_id)
+    old = await job_queue.get(job_id)
+    if not old:
+        logger.warning("[%s] Retry target not found: %s", client, job_id)
+        raise HTTPException(404, "Trabajo no encontrado")
+    if old.status not in (JobStatus.ERROR, JobStatus.CANCELLED):
+        raise HTTPException(409, "Solo se pueden reintentar trabajos con error o cancelados")
+
+    # Re-run with the same params: yt-dlp resumes .part files (continuedl is
+    # the default) and skips items whose final file already exists.
+    job = Job(
+        url=str(old.url),
+        mode=old.mode,
+        audio_format=old.audio_format,
+        audio_quality=old.audio_quality,
+        video_quality=old.video_quality,
+        folder=old.folder,
+    )
+    if old.output_files:
+        # Keep files the previous attempt already produced (they count as
+        # completed items instead of being lost from the job's file list)
+        job.output_files = [f for f in old.output_files if os.path.exists(f)]
+
+    await job_queue.create(job)
+    job_queue.register(job.id, job)
+    logger.info("[%s] Retry job created: id=%s (from %s)", client, job.id, old.id)
+    executor.submit(download_worker, job, job_queue.update_sync)
+    return {"id": job.id}
+
+
 @router.post("/api/jobs/clear")
 async def clear_finished(request: Request):
     client = request.client.host if request.client else "unknown"

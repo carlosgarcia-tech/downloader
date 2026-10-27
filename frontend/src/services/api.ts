@@ -40,5 +40,8 @@ export const api = {
   clearFinished: () =>
     fetchJson<{ ok: boolean; cleared: number }>('/jobs/clear', { method: 'POST' }),
 
+  retryJob: (id: string) =>
+    fetchJson<{ id: string }>(`/jobs/${id}/retry`, { method: 'POST' }),
+
   health: () => fetchJson<{ status: string }>('/health'),
 };

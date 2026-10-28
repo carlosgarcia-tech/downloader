@@ -2,10 +2,9 @@
 
 import { useState, useRef, useCallback, FormEvent } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { DownloadSimple, Link as LinkIcon, MonitorPlay, MusicNote, ArrowCounterClockwise, X } from '@phosphor-icons/react';
+import { DownloadSimple, Link as LinkIcon, MonitorPlay, MusicNote, ArrowCounterClockwise, X, WarningCircle } from '@phosphor-icons/react';
 import { api } from '../services/api';
 import type { CreateJobRequest, AudioFormat, VideoQuality } from '../types/api';
-import { useToast } from '../hooks/useToast.tsx';
 
 const AUDIO_FORMATS: AudioFormat[] = ['mp3', 'm4a', 'flac'];
 const AUDIO_QUALITIES = ['320', '256', '192', '128'];
@@ -16,12 +15,12 @@ https://youtube.com/watch?v=...
 (uno por línea)`;
 
 export function Form() {
-  const { showToast } = useToast();
   const urlsRef = useRef<HTMLTextAreaElement>(null);
   const reduced = !!useReducedMotion();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [urlCount, setUrlCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<CreateJobRequest>({
     urls: '',
@@ -51,6 +50,8 @@ export function Form() {
     e.preventDefault();
 
     if (!formData.urls.trim()) {
+      setError('Pega al menos un enlace de YouTube para empezar.');
+      urlsRef.current?.focus();
       return;
     }
 
@@ -66,10 +67,16 @@ export function Form() {
     });
 
     if (invalidUrls.length > 0) {
-      showToast('error', 'Alguno de los enlaces no es de YouTube o YouTube Music');
+      const shown = [...new Set(invalidUrls)].slice(0, 3).join(', ');
+      const extra = invalidUrls.length > 3 ? ` y ${invalidUrls.length - 3} más` : '';
+      setError(
+        `Solo se aceptan enlaces de YouTube o YouTube Music (youtube.com, youtu.be, music.youtube.com). Corrige: ${shown}${extra}`
+      );
+      urlsRef.current?.focus();
       return;
     }
 
+    setError(null);
     setIsSubmitting(true);
 
     try {
@@ -78,14 +85,16 @@ export function Form() {
       setUrlCount(0);
     } catch (err) {
       console.error('[Form] Failed to create jobs:', err);
+      setError('No se pudo encolar la descarga — reintenta en unos segundos.');
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, showToast]);
+  }, [formData]);
 
   const handleClearUrls = useCallback(() => {
     setFormData((prev) => ({ ...prev, urls: '' }));
     setUrlCount(0);
+    setError(null);
   }, []);
 
   return (
@@ -128,9 +137,12 @@ export function Form() {
               id="urls"
               name="urls"
               placeholder={PLACEHOLDER_URLS}
+              aria-invalid={!!error}
+              aria-describedby={error ? 'urls-error' : undefined}
               rows={4}
               value={formData.urls}
               onChange={(e) => {
+                setError(null);
                 setFormData(prev => ({ ...prev, urls: e.target.value }));
                 const urls = e.target.value.split('\n').map(u => u.trim()).filter(Boolean);
                 setUrlCount(urls.length);
@@ -184,6 +196,17 @@ export function Form() {
               )}
             </AnimatePresence>
           </div>
+
+          {error && (
+            <p
+              id="urls-error"
+              role="alert"
+              className="flex items-start gap-1.5 px-1 text-xs text-danger break-words animate-fade-in"
+            >
+              <WarningCircle weight="bold" size={14} className="flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </p>
+          )}
 
           {urlCount > 0 && (
             <div className="flex items-center justify-between px-3 py-2 bg-surface-raised rounded-lg border border-border animate-slide-up">

@@ -1,5 +1,5 @@
 """
-Descargador — Backend FastAPI + yt-dlp (Modular Architecture)
+GZWave — Backend FastAPI + yt-dlp (Modular Architecture)
 """
 
 import asyncio
@@ -31,7 +31,7 @@ executor = ThreadPoolExecutor(max_workers=settings.max_concurrent_downloads)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
-    logger.info("Starting Descargador backend...")
+    logger.info("Starting GZWave backend...")
 
     try:
         verify_ffmpeg()
@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
     set_executor(executor)
 
     broadcast_task = asyncio.create_task(broadcast_loop())
-    logger.info("Descargador backend started on %s:%d", settings.host, settings.port)
+    logger.info("GZWave backend started on %s:%d", settings.host, settings.port)
 
     yield
 
@@ -57,11 +57,11 @@ async def lifespan(app: FastAPI):
     executor.shutdown(wait=True)
     _item_executor.shutdown(wait=False)
     await job_queue.close()
-    logger.info("Descargador backend stopped")
+    logger.info("GZWave backend stopped")
 
 
 app = FastAPI(
-    title="Descargador",
+    title="GZWave",
     lifespan=lifespan,
 )
 

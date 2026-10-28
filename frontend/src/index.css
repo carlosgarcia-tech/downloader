@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* --- Descargador Premium — Design Tokens --- */
+  /* --- GZWave — Design Tokens --- */
   /* Base */
   --color-bg: #0a0a0f;
   --color-surface: #14141e;
@@ -63,6 +63,7 @@
   }
 
   html {
+    color-scheme: dark;
     scroll-behavior: smooth;
   }
 
@@ -109,9 +110,10 @@
     color: var(--color-text);
   }
 
-  input, select, textarea, button {
+  input, select, textarea, button, a {
     font-family: inherit;
     font-size: inherit;
+    touch-action: manipulation;
   }
 
   a {
@@ -512,6 +514,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  /* Virtualización barata: las filas fuera del viewport se saltan el render.
+     3.5rem cubre la altura típica de una fila de canción. */
+  .cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 3.5rem;
   }
 
   /* Print styles */

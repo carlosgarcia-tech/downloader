@@ -4,8 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    image: descargador:latest
-    container_name: descargador
+    image: gzwave:latest
+    container_name: gzwave
     ports:
       - "8000:8000"
     volumes:
@@ -29,8 +29,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: builder
-    image: descargador:dev
-    container_name: descargador-dev
+    image: gzwave:dev
+    container_name: gzwave-dev
     ports:
       - "8000:8000"
     volumes:
@@ -47,4 +47,4 @@ services:
 
 networks:
   default:
-    name: descargador-network
+    name: gzwave-network

@@ -1,4 +1,4 @@
-# Descargador
+# GZWave
 
 App web local para descargar audio y video desde YouTube / YouTube Music
 (canciones sueltas, álbumes o playlists completas) usando `yt-dlp`, con una
@@ -152,7 +152,7 @@ Variables de entorno (`.env` o `docker-compose.yml`):
 ## Estructura del proyecto
 
 ```
-descargador/
+gzwave/
 ├── backend/
 │   ├── app/
 │   │   ├── api/           # Rutas REST + WebSocket

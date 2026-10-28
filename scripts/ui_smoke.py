@@ -8,7 +8,7 @@ de humo (http://127.0.0.1:8031) y verifica el rediseño Premium:
 4. Mobile 390x844: sidebar oculta, contenido a ancho casi total.
 
 Uso: .venv/bin/python scripts/ui_smoke.py
-Screenshots: /tmp/opencode/smoke/*.png
+Screenshots: /tmp/gzwave/smoke/*.png
 """
 
 import sys
@@ -16,7 +16,7 @@ import sys
 from playwright.sync_api import sync_playwright
 
 BASE = "http://127.0.0.1:8031"
-OUT = "/tmp/opencode/smoke"
+OUT = "/tmp/gzwave/smoke"
 
 failures = []
 
@@ -35,8 +35,8 @@ with sync_playwright() as p:
     page = browser.new_page(viewport={"width": 1440, "height": 900})
     page.goto(BASE, wait_until="networkidle")
 
-    check("header 'Descargador' visible",
-          page.get_by_role("heading", name="Descargador").is_visible())
+    check("header 'GZWave' visible",
+          page.get_by_role("heading", name="GZWave").is_visible())
 
     # El contenedor principal debe quedar centrado: márgenes izq ≈ der
     box = page.locator("main").first.bounding_box()

@@ -65,15 +65,6 @@ function StatusIcon({ status }: { status: string }) {
   }
 }
 
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
 export function JobItem({
   job,
   onCancel,
@@ -148,7 +139,7 @@ export function JobItem({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap gap-y-1">
                 <h3 className="font-medium text-text truncate sm:pr-4 font-display">
-                  {escapeHtml(title)}
+                  {title}
                 </h3>
                 <span className={cn('whitespace-nowrap', statusClass)}>
                   {job.status === 'queued' && queuedIndex !== undefined
@@ -164,14 +155,14 @@ export function JobItem({
                 {job.is_playlist && job.playlist_title && (
                   <span className="text-xs text-text-muted flex items-center gap-1 font-mono">
                     <Playlist weight="bold" size={12} />
-                    {escapeHtml(job.playlist_title)}
+                    {job.playlist_title}
                   </span>
                 )}
               </div>
 
               <div className="flex items-center gap-2 mt-1 text-text-muted text-sm font-mono">
                 {hasTitle ? (
-                  <span className="break-all line-clamp-2">{escapeHtml(job.url)}</span>
+                  <span className="break-all line-clamp-2">{job.url}</span>
                 ) : (
                   <span className="text-text-dim italic">Resolviendo título…</span>
                 )}
@@ -318,7 +309,7 @@ export function JobItem({
                 <WarningCircle weight="fill" size={16} className="text-danger flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-danger font-bold text-sm">Error en la descarga</p>
-                  <p className="text-text-muted text-xs mt-1 font-mono break-all">{escapeHtml(job.error)}</p>
+                  <p className="text-text-muted text-xs mt-1 font-mono break-all">{job.error}</p>
                 </div>
                 {onRetry && (
                   <button
@@ -353,7 +344,7 @@ export function JobItem({
               <div className="flex-1 h-px bg-border/50" />
             </div>
 
-            <div className="space-y-1.5 max-h-96 overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-96 overflow-y-auto overscroll-contain pr-1">
               {(job.songs || []).map((song, index) => (
                 <SongItem
                   key={`${job.id}-${song.index}`}
@@ -390,7 +381,7 @@ function SongItem({ song, index, total, isActive, isCompleted, isError }: SongIt
   return (
     <motion.div
       className={cn(
-        'flex items-center gap-2 p-2.5 rounded-md bg-input/60 border border-border/30',
+        'cv-auto flex items-center gap-2 p-2.5 rounded-md bg-input/60 border border-border/30',
         'transition-all duration-200',
         isActive && 'border-action/40 bg-action-dim',
         isCompleted && 'border-border bg-transparent opacity-80',

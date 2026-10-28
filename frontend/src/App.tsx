@@ -1,9 +1,5 @@
-'use client';
-
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { DownloadSimple } from '@phosphor-icons/react';
-import { useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { api } from './services/api';
 import type { Job } from './types/api';
 import { Form } from './components/Form';
@@ -12,6 +8,12 @@ import { PlaylistPreview } from './components/PlaylistPreview';
 import { ToastProvider, useToast } from './hooks/useToast.tsx';
 import { useWebSocket } from './hooks/useWebSocket.tsx';
 import './index.css';
+
+// Emblema GZWave (recorte del logo completo). Vite sirve los archivos de
+// public/ desde la raíz: disponible en dev y en el build de producción.
+const LOGO_URL = '/logo-icon.png';
+// Lockup completo — emblema + GZWave + tagline — para el hero de bienvenida.
+const LOGO_HERO_URL = '/logo-hero.png';
 
 function AppContent() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -61,22 +63,17 @@ function AppContent() {
         >
           <div className="flex items-start justify-between gap-3 flex-wrap mb-5">
             <div className="flex items-center gap-3">
+              {/* El nombre vive en el hero de abajo; el h1 queda para lectores
+                  de pantalla / navegación accesible. */}
+              <h1 className="sr-only">GZWave</h1>
               <motion.div
                 initial={shouldReduceMotion ? { scale: 1 } : { scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={shouldReduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 20, delay: 0.2 }}
-                className="w-11 h-11 rounded-lg bg-action flex items-center justify-center flex-shrink-0 shadow-[0_0_20px_rgba(229,9,20,0.4)]"
+                className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 shadow-[0_0_20px_rgba(229,9,20,0.4)]"
               >
-                <DownloadSimple weight="fill" size={24} className="text-white" />
+                <img src={LOGO_URL} alt="GZWave" className="w-11 h-11 object-cover rounded-lg" />
               </motion.div>
-              <div>
-                <h1 className="font-display font-extrabold text-2xl sm:text-3xl text-text tracking-tight">
-                  Descargador
-                </h1>
-                <p className="text-text-muted mt-0.5 text-xs sm:text-sm">
-                  YouTube &amp; YouTube Music
-                </p>
-              </div>
             </div>
 
             {/* Connection status — inline in header */}
@@ -86,6 +83,23 @@ function AppContent() {
               shouldReduceMotion={shouldReduceMotion}
             />
           </div>
+
+          {/* Hero de bienvenida: logo completo (GZ + nombre + tagline).
+              mix-blend-screen funde su fondo negro con el bg de la página. */}
+          <motion.div
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={shouldReduceMotion ? { duration: 0 } : { delay: 0.15, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="mb-6"
+          >
+            <img
+              src={LOGO_HERO_URL}
+              alt="GZWave — Download / Convert / Enjoy"
+              width={640}
+              height={640}
+              className="w-64 sm:w-80 lg:w-96 max-w-full mix-blend-screen"
+            />
+          </motion.div>
 
           <motion.p
             initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, x: -12 }}

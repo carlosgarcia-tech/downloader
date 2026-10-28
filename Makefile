@@ -1,9 +1,9 @@
-# Makefile for Descargador
+# Makefile for GZWave
 .PHONY: help build up down logs shell test lint format clean
 
 # Default target
 help:
-	@echo "Descargador - Docker Commands"
+	@echo "GZWave - Docker Commands"
 	@echo ""
 	@echo "Usage: make <target>"
 	@echo ""
@@ -93,7 +93,7 @@ health:
 
 # View image size
 size:
-	docker images descargador*
+	docker images gzwave*
 
 # Development workflow: build, up, logs
 dev: build-dev up-dev logs

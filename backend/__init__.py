@@ -1,4 +1,4 @@
-"""Descargador backend package.
+"""GZWave backend package.
 
 Makes the `app` package (backend/app) importable so the server can be started
 from the repository root with:

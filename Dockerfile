@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Descargador
+# Multi-stage Dockerfile for GZWave
 # Stage 1: Builder - install dependencies
 FROM python:3.12-slim-bookworm AS builder
 

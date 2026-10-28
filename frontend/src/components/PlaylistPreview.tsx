@@ -60,8 +60,9 @@ export function PlaylistPreview({ jobs }: PlaylistPreviewProps) {
         </div>
       </div>
 
-      {/* Tracklist — tabular, optimized for scanning */}
-      <div className="max-h-[480px] overflow-y-auto">
+      {/* Tracklist — tabular, optimized for scanning.
+          overscroll-contain y cv-auto: lista larga sin costo de render. */}
+      <div className="max-h-[480px] overflow-y-auto overscroll-contain">
         <ul className="divide-y divide-border/40">
           {(job.songs || []).map((song) => {
             const isActive = song.status === 'downloading' || song.status === 'processing';
@@ -69,7 +70,7 @@ export function PlaylistPreview({ jobs }: PlaylistPreviewProps) {
             return (
               <li
                 key={`${job.id}-${song.index}`}
-                className="track-row flex items-center gap-3 px-4 py-2.5 hover:bg-surface-raised/70 transition-colors"
+                className="track-row cv-auto flex items-center gap-3 px-4 py-2.5 hover:bg-surface-raised/70 transition-colors"
               >
                 {/* Track number becomes a red play icon on hover */}
                 <span className="row-number flex-shrink-0 w-6 text-right text-xs font-mono text-text-dim">

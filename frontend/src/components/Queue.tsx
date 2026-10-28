@@ -65,10 +65,12 @@ export function Queue({ jobs }: QueueProps) {
         className="py-12"
       >
         <div className="text-center">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-border mb-3">
-            <circle cx="12" cy="12" r="10" strokeOpacity="0.4"/>
-            <polygon points="10 8 16 12 10 16 10 8"/>
-          </svg>
+          <img
+            src="/logo-hero.png"
+            alt=""
+            aria-hidden="true"
+            className="w-36 sm:w-40 mx-auto mb-2 mix-blend-screen drop-shadow-[0_0_24px_rgba(229,9,20,0.25)]"
+          />
           <h2 className="font-display font-medium text-text/60 text-xl mb-1">Cola vacía</h2>
           <p className="text-text-muted">Pega enlaces de YouTube Music arriba para empezar a descargar</p>
         </div>
